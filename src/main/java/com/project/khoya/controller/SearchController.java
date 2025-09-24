@@ -1,18 +1,13 @@
 package com.project.khoya.controller;
 
-import com.project.khoya.dto.AlertListResponse;
+
 import com.project.khoya.dto.AlertResponse;
-import com.project.khoya.entity.AlertStatus;
 import com.project.khoya.entity.MissingAlert;
 import com.project.khoya.repository.MissingAlertRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

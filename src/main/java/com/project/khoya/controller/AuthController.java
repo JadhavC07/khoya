@@ -76,8 +76,7 @@ public class AuthController {
             description = "Logout successful"
     )
     public ResponseEntity<AuthResponse> logout() {
-        // In a stateless JWT system, logout is handled client-side by deleting the token
-        // You could implement a token blacklist for enhanced security
+        // Need to implement a token blacklist for enhanced security
         return ResponseEntity.ok(
                 AuthResponse.builder()
                         .status("success")
