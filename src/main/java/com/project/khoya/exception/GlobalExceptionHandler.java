@@ -18,6 +18,7 @@ import java.util.Map;
 @Slf4j
 public class GlobalExceptionHandler {
 
+
     @ExceptionHandler(UserAlreadyExistsException.class)
     public ResponseEntity<ErrorResponse> handleUserAlreadyExists(UserAlreadyExistsException ex) {
         ErrorResponse error = new ErrorResponse(ex.getMessage(), "USER_ALREADY_EXISTS");
@@ -34,6 +35,18 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleUnauthorizedOperation(UnauthorizedOperationException ex) {
         ErrorResponse error = new ErrorResponse(ex.getMessage(), "UNAUTHORIZED_OPERATION");
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+    }
+
+    @ExceptionHandler(DuplicateReportException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateReport(DuplicateReportException ex) {
+        ErrorResponse error = new ErrorResponse(ex.getMessage(), "DUPLICATE_REPORT");
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
+    @ExceptionHandler(SelfReportException.class)
+    public ResponseEntity<ErrorResponse> handleSelfReport(SelfReportException ex) {
+        ErrorResponse error = new ErrorResponse(ex.getMessage(), "SELF_REPORT_NOT_ALLOWED");
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
     @ExceptionHandler(BadCredentialsException.class)
