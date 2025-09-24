@@ -41,11 +41,11 @@ public class AdminAlertController {
         stats.put("closedAlerts", alertRepository.countByStatus(AlertStatus.CLOSED));
         stats.put("underReviewAlerts", alertRepository.countByStatus(AlertStatus.UNDER_REVIEW));
 
-        // Recent alerts (last 7 days)
+
         LocalDateTime weekAgo = LocalDateTime.now().minusDays(7);
         stats.put("recentAlerts", alertRepository.findRecentAlerts(weekAgo).size());
 
-        // High report count alerts (>= 5 reports)
+
         stats.put("highReportAlerts", alertRepository.findAlertsWithHighReportCount(5).size());
 
         return ResponseEntity.ok(stats);
