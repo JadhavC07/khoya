@@ -44,5 +44,20 @@ public interface MissingAlertRepository extends JpaRepository<MissingAlert, Long
     // Find alerts with high report count (for admin review)
     @Query("SELECT a FROM MissingAlert a WHERE a.reportCount >= :threshold ORDER BY a.reportCount DESC")
     List<MissingAlert> findAlertsWithHighReportCount(@Param("threshold") int threshold);
+
+
+    long countByIsFlagged(boolean isFlagged);
+    long countByAutoDeleted(boolean autoDeleted);
+
+    Page<MissingAlert> findByIsFlaggedOrderByFlaggedAtDesc(boolean isFlagged, Pageable pageable);
+
+    @Query("SELECT a FROM MissingAlert a WHERE a.isFlagged = true ORDER BY a.flaggedAt DESC")
+    Page<MissingAlert> findFlaggedAlerts(Pageable pageable);
+
+    @Query("SELECT a FROM MissingAlert a WHERE a.isFlagged = true OR a.reportCount >= 3 ORDER BY a.reportCount DESC, a.flaggedAt DESC")
+    List<MissingAlert> findAlertsNeedingAttention();
+
+    @Query("SELECT a FROM MissingAlert a WHERE a.autoDeleted = true ORDER BY a.autoDeletedAt DESC")
+    Page<MissingAlert> findAutoDeletedAlerts(Pageable pageable);
 }
 

@@ -9,6 +9,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Data
@@ -37,6 +38,22 @@ public class MissingAlert {
 
     private int reportCount = 0;
 
+
+    @Column(name = "is_flagged", nullable = false)
+    private Boolean isFlagged = false;
+
+    @Column(name = "flagged_at")
+    private LocalDateTime flaggedAt;
+
+    @Column(name = "flagged_reason")
+    private String flaggedReason;
+
+    @Column(name = "auto_deleted", nullable = false)
+    private Boolean autoDeleted = false;
+
+    @Column(name = "auto_deleted_at")
+    private LocalDateTime autoDeletedAt;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -51,6 +68,30 @@ public class MissingAlert {
     @JoinColumn(name = "user_id", nullable = false)
     private User postedBy;
 
+    @OneToMany(mappedBy = "alert", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<AlertReport> reports;
+
+
+    public boolean isFlagged() {
+        return Boolean.TRUE.equals(this.isFlagged);
+    }
+
+    public boolean isAutoDeleted() {
+        return Boolean.TRUE.equals(this.autoDeleted);
+    }
+
+
+    public Boolean getFlagged() {
+        return this.isFlagged;
+    }
+
+
+    public void setFlagged(Boolean flagged) {
+        this.isFlagged = flagged;
+    }
+
+
+
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) {
@@ -59,6 +100,13 @@ public class MissingAlert {
         if (updatedAt == null) {
             updatedAt = LocalDateTime.now();
         }
+
+        if (isFlagged == null) {
+            isFlagged = false;
+        }
+        if (autoDeleted == null) {
+            autoDeleted = false;
+        }
     }
 
     @PreUpdate
@@ -66,4 +114,3 @@ public class MissingAlert {
         updatedAt = LocalDateTime.now();
     }
 }
-
