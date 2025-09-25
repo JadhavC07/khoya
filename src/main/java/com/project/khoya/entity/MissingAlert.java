@@ -9,6 +9,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -54,6 +55,20 @@ public class MissingAlert {
     @Column(name = "auto_deleted_at")
     private LocalDateTime autoDeletedAt;
 
+
+    @Column(name = "upvotes", nullable = false)
+    private Integer upvotes = 0;
+
+    @Column(name = "downvotes", nullable = false)
+    private Integer downvotes = 0;
+
+    @Column(name = "score", nullable = false)
+    private Integer score = 0;
+
+    @Column(name = "comment_count", nullable = false)
+    private Integer commentCount = 0;
+
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -70,6 +85,12 @@ public class MissingAlert {
 
     @OneToMany(mappedBy = "alert", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<AlertReport> reports;
+
+    @OneToMany(mappedBy = "alert", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Comment> comments = new ArrayList<>();
+
+    @OneToMany(mappedBy = "alert", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Vote> votes = new ArrayList<>();
 
 
     public boolean isFlagged() {

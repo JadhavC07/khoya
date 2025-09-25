@@ -60,18 +60,35 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+
+                        // Swagger UI endpoints - more comprehensive patterns
+                        .requestMatchers(
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/swagger-ui/index.html",
+                                "/v3/api-docs/**",
+                                "/v3/api-docs.yaml",
+                                "/swagger-resources/**",
+                                "/webjars/**"
+                        ).permitAll()
+
+                        // Health check
                         .requestMatchers("/actuator/health").permitAll()
 
+                        // Public read access to alerts and search
                         .requestMatchers(HttpMethod.GET, "/api/alerts/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/search/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/alerts-social/**").permitAll()
+
                         // Admin only endpoints
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
-                        // User endpoints
-                        .requestMatchers("/api/user/**").hasRole("USER")
-
                         // Protected endpoints - any authenticated user
-                        .requestMatchers("/api/alerts/**").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/alerts/**").authenticated()
+                        .requestMatchers(HttpMethod.PUT, "/api/alerts/**").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/api/alerts/**").authenticated()
+                        .requestMatchers("/api/reports/**").authenticated()
+                        .requestMatchers("/api/social/**").authenticated()
 
                         // Any other request must be authenticated
                         .anyRequest().authenticated()
@@ -95,4 +112,3 @@ public class SecurityConfig {
         return source;
     }
 }
-
