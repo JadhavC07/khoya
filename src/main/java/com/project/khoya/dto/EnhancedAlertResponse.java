@@ -16,8 +16,8 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@Schema(description = "Alert response")
-public class AlertResponse {
+@Schema(description = "Enhanced alert response with social interaction data")
+public class EnhancedAlertResponse {
 
     @Schema(description = "Alert ID", example = "1")
     private Long id;
@@ -68,11 +68,25 @@ public class AlertResponse {
     @Schema(description = "Current user's vote on this alert")
     private VoteType userVote;
 
+    // Permission flags
     @Schema(description = "Whether current user can edit this alert")
     private Boolean canEdit;
 
     @Schema(description = "Whether current user can delete this alert")
     private Boolean canDelete;
+
+    @Schema(description = "Whether current user can report this alert")
+    private Boolean canReport;
+
+    // Engagement metrics
+    @Schema(description = "Total engagement score based on comments and votes")
+    private Double engagementScore;
+
+    @Schema(description = "Whether this alert is trending")
+    private Boolean trending;
+
+    @Schema(description = "Alert visibility status")
+    private AlertVisibility visibility;
 
     @Data
     @Builder
@@ -82,7 +96,15 @@ public class AlertResponse {
         private Long id;
         private String name;
         private String email;
+
+        @Schema(description = "User's reputation score")
+        private Integer reputation;
+
+        @Schema(description = "Number of alerts posted by user")
+        private Integer alertCount;
+    }
+
+    public enum AlertVisibility {
+        PUBLIC, FLAGGED, HIDDEN, ARCHIVED
     }
 }
-
-
