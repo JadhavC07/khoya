@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -29,10 +30,13 @@ public class AlertService {
 
     private final MissingAlertRepository alertRepository;
     private final UserRepository userRepository;
+    private final FirebaseMessagingService firebaseMessagingService;
 
     public AlertResponse createAlert(CreateAlertRequest request, Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
+
+
 
         MissingAlert alert = new MissingAlert();
         alert.setTitle(request.getTitle());
@@ -44,6 +48,21 @@ public class AlertService {
 
         MissingAlert savedAlert = alertRepository.save(alert);
         log.info("New alert created with ID: {} by user: {}", savedAlert.getId(), user.getEmail());
+
+
+
+        // 🔔 Send notification to all users
+        Map<String, String> data = Map.of(
+                "alertId", savedAlert.getId().toString(),
+                "type", "NEW_ALERT",
+                "location", savedAlert.getLocation() != null ? savedAlert.getLocation() : ""
+        );
+
+        firebaseMessagingService.sendPushNotificationToAllUsers(
+                "🚨 New Missing Person Alert",
+                savedAlert.getTitle() + " reported missing in " + savedAlert.getLocation(),
+                data
+        );
 
         return mapToAlertResponse(savedAlert);
     }
@@ -146,6 +165,17 @@ public class AlertService {
 
         MissingAlert updatedAlert = alertRepository.save(alert);
         log.info("Alert marked as found with ID: {} by user: {}", updatedAlert.getId(), userId);
+
+        Map<String, String> data = Map.of(
+                "alertId", updatedAlert.getId().toString(),
+                "type", "PERSON_FOUND"
+        );
+
+        firebaseMessagingService.sendPushNotificationToAllUsers(
+                "✅ Good News! Person Found",
+                updatedAlert.getTitle() + " has been found safely.",
+                data
+        );
 
         return mapToAlertResponse(updatedAlert);
     }
