@@ -1,5 +1,6 @@
 package com.project.khoya.service;
 
+
 import com.google.firebase.ErrorCode;
 import com.google.firebase.messaging.*;
 import com.project.khoya.dto.PushNotificationRequest;
@@ -21,6 +22,9 @@ public class FirebaseMessagingService {
 
     private final FcmTokenRepository fcmTokenRepository;
 
+    /**
+     * Send notification to a single user.
+     */
     public void sendPushNotificationToUser(Long userId, String title, String body, Map<String, String> data) {
         List<FcmToken> tokens = fcmTokenRepository.findByUserIdAndIsActiveTrue(userId);
 
@@ -34,11 +38,13 @@ public class FirebaseMessagingService {
         }
     }
 
+    /**
+     * Broadcast to all active users.
+     */
     public void sendPushNotificationToAllUsers(String title, String body, Map<String, String> data) {
         List<FcmToken> allTokens = fcmTokenRepository.findAllActiveTokens();
 
-        // Send in batches to avoid rate limits
-        int batchSize = 100;
+        int batchSize = 500; // Firebase allows up to 500 per batch
         for (int i = 0; i < allTokens.size(); i += batchSize) {
             int end = Math.min(i + batchSize, allTokens.size());
             List<FcmToken> batch = allTokens.subList(i, end);
@@ -47,6 +53,9 @@ public class FirebaseMessagingService {
         }
     }
 
+    /**
+     * Batch send (up to 500 tokens).
+     */
     private void sendBatchNotifications(List<FcmToken> tokens, String title, String body, Map<String, String> data) {
         List<String> tokenStrings = tokens.stream()
                 .map(FcmToken::getToken)
@@ -63,17 +72,19 @@ public class FirebaseMessagingService {
 
         try {
             BatchResponse response = FirebaseMessaging.getInstance().sendMulticast(message);
-            log.info("Successfully sent {} messages out of {}", response.getSuccessCount(), tokens.size());
+            log.info("✅ Successfully sent {} messages out of {}", response.getSuccessCount(), tokens.size());
 
-            // Handle invalid tokens
             if (response.getFailureCount() > 0) {
                 handleFailedTokens(response, tokens);
             }
         } catch (FirebaseMessagingException e) {
-            log.error("Error sending batch notifications", e);
+            log.error("🔥 Error sending batch notifications", e);
         }
     }
 
+    /**
+     * Single push send.
+     */
     public void sendPushNotification(PushNotificationRequest request) {
         Message message = Message.builder()
                 .setNotification(Notification.builder()
@@ -86,42 +97,49 @@ public class FirebaseMessagingService {
 
         try {
             String response = FirebaseMessaging.getInstance().send(message);
-            log.info("Successfully sent message: {}", response);
+            log.info("✅ Successfully sent message: {}", response);
         } catch (FirebaseMessagingException e) {
-            log.error("Error sending push notification to token: {}", request.getToken(), e);
+            log.error("🔥 Error sending push notification to token: {}", request.getToken(), e);
 
-            // Remove invalid tokens
             if (isInvalidToken(e)) {
-                fcmTokenRepository.findByTokenAndIsActiveTrue(request.getToken())
-                        .ifPresent(token -> {
-                            token.setIsActive(false);
-                            fcmTokenRepository.save(token);
-                        });
+                deactivateInvalidToken(request.getToken());
             }
         }
     }
 
+    /**
+     * Handle failed tokens in a batch.
+     */
     private void handleFailedTokens(BatchResponse response, List<FcmToken> tokens) {
         List<SendResponse> responses = response.getResponses();
         for (int i = 0; i < responses.size(); i++) {
             if (!responses.get(i).isSuccessful()) {
-                FcmToken token = tokens.get(i);
                 Exception exception = responses.get(i).getException();
-
-                if (exception instanceof FirebaseMessagingException) {
-                    FirebaseMessagingException fme = (FirebaseMessagingException) exception;
-                    if (isInvalidToken(fme)) {
-                        token.setIsActive(false);
-                        fcmTokenRepository.save(token);
-                        log.info("Deactivated invalid token: {}", token.getToken());
-                    }
+                if (exception instanceof FirebaseMessagingException fme && isInvalidToken(fme)) {
+                    deactivateInvalidToken(tokens.get(i).getToken());
                 }
             }
         }
     }
 
+    /**
+     * Deactivate a token in DB.
+     */
+    private void deactivateInvalidToken(String token) {
+        fcmTokenRepository.findByTokenAndIsActiveTrue(token)
+                .ifPresent(t -> {
+                    t.setIsActive(false);
+                    fcmTokenRepository.save(t);
+                    log.info("🚫 Deactivated invalid token: {}", token);
+                });
+    }
+
+    /**
+     * Determine if an error indicates invalid/expired token.
+     */
     private boolean isInvalidToken(FirebaseMessagingException e) {
         return e.getErrorCode() == ErrorCode.INVALID_ARGUMENT ||
-                e.getErrorCode() == ErrorCode.UNAUTHENTICATED;
+                e.getErrorCode() == ErrorCode.UNAUTHENTICATED ||
+                "registration-token-not-registered".equalsIgnoreCase(e.getMessagingErrorCode().name());
     }
 }
