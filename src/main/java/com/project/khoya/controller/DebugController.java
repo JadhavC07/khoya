@@ -1,5 +1,6 @@
 package com.project.khoya.controller;
 
+import com.google.firebase.FirebaseApp;
 import com.project.khoya.dto.PushNotificationRequest;
 import com.project.khoya.entity.FcmToken;
 import com.project.khoya.repository.FcmTokenRepository;
@@ -9,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -148,5 +150,36 @@ public class DebugController {
                     "tokenPreview", token.substring(0, 20) + "..."
             ));
         }
+    }
+
+
+    @GetMapping("/firebase-status")
+    public ResponseEntity<Map<String, Object>> getFirebaseStatus() {
+        Map<String, Object> status = new HashMap<>();
+
+        try {
+            List<FirebaseApp> apps = FirebaseApp.getApps();
+            status.put("initialized", !apps.isEmpty());
+            status.put("appCount", apps.size());
+
+            if (!apps.isEmpty()) {
+                FirebaseApp defaultApp = FirebaseApp.getInstance();
+                status.put("defaultAppName", defaultApp.getName());
+                status.put("projectId", defaultApp.getOptions().getProjectId());
+                status.put("serviceAccountId", defaultApp.getOptions().getServiceAccountId());
+            } else {
+                status.put("error", "No Firebase apps initialized");
+            }
+
+            // Environment variables check
+            status.put("hasEnvVar", System.getenv("FIREBASE_SERVICE_ACCOUNT_KEY") != null);
+
+        } catch (Exception e) {
+            status.put("error", e.getMessage());
+            status.put("initialized", false);
+            log.error("Error checking Firebase status", e);
+        }
+
+        return ResponseEntity.ok(status);
     }
 }
