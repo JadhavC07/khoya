@@ -8,9 +8,11 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 
 import javax.annotation.PostConstruct;
+import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 
 @Configuration
 @Slf4j
@@ -19,32 +21,25 @@ public class FirebaseConfig {
     @PostConstruct
     public void initialize() {
         try {
-            InputStream serviceAccount =
-                    new ClassPathResource("firebase/firebase-service-account.json").getInputStream();
-
-            FirebaseOptions options = new FirebaseOptions.Builder()
-                    .setCredentials(GoogleCredentials.fromStream(serviceAccount))
-                    .build();
-
-            if (FirebaseApp.getApps().isEmpty()) {
-                FirebaseApp.initializeApp(options);
-                log.info("✅ Firebase application initialized successfully");
-                log.info("✅ Project ID: {}", options.getProjectId());
+            String serviceAccountJson = System.getenv("FIREBASE_SERVICE_ACCOUNT_JSON");
+            if (serviceAccountJson != null && !serviceAccountJson.isEmpty()) {
+                InputStream serviceAccount = new ByteArrayInputStream(serviceAccountJson.getBytes(StandardCharsets.UTF_8));
+                FirebaseOptions options = new FirebaseOptions.Builder()
+                        .setCredentials(GoogleCredentials.fromStream(serviceAccount))
+                        .build();
+                if (FirebaseApp.getApps().isEmpty()) {
+                    FirebaseApp.initializeApp(options);
+                    log.info("✅ Firebase initialized from environment variable");
+                }
+                serviceAccount.close();
             } else {
-                log.info("✅ Firebase already initialized");
+                throw new IOException("FIREBASE_SERVICE_ACCOUNT_JSON environment variable not set");
             }
-
-            serviceAccount.close(); // Close the stream
-
         } catch (IOException e) {
             log.error("❌ Failed to initialize Firebase: {}", e.getMessage(), e);
-
-            // Try alternative approach with environment variable
-            log.info("🔄 Trying alternative Firebase initialization...");
             tryAlternativeInitialization();
         }
     }
-
     private void tryAlternativeInitialization() {
         try {
             FirebaseOptions options = FirebaseOptions.builder()
