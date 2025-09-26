@@ -44,7 +44,7 @@ public class FirebaseMessagingService {
     public void sendPushNotificationToAllUsers(String title, String body, Map<String, String> data) {
         List<FcmToken> allTokens = fcmTokenRepository.findAllActiveTokens();
 
-        int batchSize = 500; // Firebase allows up to 500 per batch
+        int batchSize = 50; // Firebase allows up to 500 per batch
         for (int i = 0; i < allTokens.size(); i += batchSize) {
             int end = Math.min(i + batchSize, allTokens.size());
             List<FcmToken> batch = allTokens.subList(i, end);
