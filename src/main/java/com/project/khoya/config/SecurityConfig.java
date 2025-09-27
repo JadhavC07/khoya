@@ -75,6 +75,8 @@ public class SecurityConfig {
                         // Health check
                         .requestMatchers("/actuator/health").permitAll()
 
+                        .requestMatchers("/uploads/**").permitAll()
+
                         // Public read access to alerts and search
                         .requestMatchers(HttpMethod.GET, "/api/alerts/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/search/**").permitAll()
