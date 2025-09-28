@@ -313,7 +313,6 @@ public class AlertController {
             @AuthenticationPrincipal CustomUserDetails userDetails) {
 
         try {
-            // Create request object from form data
             CreateAlertRequest request = new CreateAlertRequest();
             request.setTitle(title);
             request.setDescription(description);
@@ -419,7 +418,6 @@ public class AlertController {
             @AuthenticationPrincipal CustomUserDetails userDetails) {
 
         try {
-            // Create request object from form data
             UpdateAlertRequest request = new UpdateAlertRequest();
             request.setTitle(title);
             request.setDescription(description);
@@ -536,7 +534,7 @@ public class AlertController {
         return ResponseEntity.ok(response);
     }
 
-    // Endpoint to serve uploaded images
+
     @GetMapping("/uploads/{fileName}")
     @Operation(
             summary = "Get uploaded image",
@@ -558,7 +556,6 @@ public class AlertController {
                 return ResponseEntity.notFound().build();
             }
 
-            // Determine content type
             String contentType;
             try {
                 contentType = Files.probeContentType(filePath);
@@ -572,7 +569,7 @@ public class AlertController {
                     .body(resource);
 
         } catch (MalformedURLException e) {
-            log.error("Error loading file: {}", fileName, e);
+
             return ResponseEntity.notFound().build();
         }
     }

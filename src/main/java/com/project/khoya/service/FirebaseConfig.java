@@ -23,10 +23,8 @@ public class FirebaseConfig {
             InputStream serviceAccount;
             String serviceAccountJson = System.getenv("FIREBASE_SERVICE_ACCOUNT_JSON");
             if (serviceAccountJson != null && !serviceAccountJson.isEmpty()) {
-                log.info("🔍 Loading Firebase from environment variable (HTTP v1)");
                 serviceAccount = new ByteArrayInputStream(serviceAccountJson.getBytes(StandardCharsets.UTF_8));
             } else {
-                log.info("🔍 Falling back to local service account file (HTTP v1)");
                 serviceAccount = new ClassPathResource("firebase-service-account.json").getInputStream();
             }
             FirebaseOptions options = FirebaseOptions.builder()
@@ -35,29 +33,24 @@ public class FirebaseConfig {
                     .build();
             if (FirebaseApp.getApps().isEmpty()) {
                 FirebaseApp.initializeApp(options);
-                log.info("✅ Firebase initialized with HTTP v1 for project: {}", options.getProjectId());
             }
             serviceAccount.close();
         } catch (IOException e) {
-            log.error("❌ Failed to initialize Firebase (HTTP v1): {}", e.getMessage(), e);
             tryAlternativeInitialization();
         }
     }
 
     private void tryAlternativeInitialization() {
         try {
-            log.info("🔍 Attempting ADC for HTTP v1 initialization");
             FirebaseOptions options = FirebaseOptions.builder()
                     .setCredentials(GoogleCredentials.getApplicationDefault()
                             .createScoped("https://www.googleapis.com/auth/firebase.messaging"))
                     .build();
             if (FirebaseApp.getApps().isEmpty()) {
                 FirebaseApp.initializeApp(options);
-                log.info("✅ Firebase initialized with ADC for HTTP v1");
             }
         } catch (IOException e) {
-            log.error("❌ ADC initialization failed (HTTP v1): {}", e.getMessage(), e);
-            log.error("💡 Ensure GOOGLE_APPLICATION_CREDENTIALS or service account is configured");
+
         }
     }
 }
