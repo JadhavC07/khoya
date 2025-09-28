@@ -34,7 +34,7 @@ public class FirebaseMessagingService {
 
     public void sendPushNotificationToAllUsers(String title, String body, Map<String, String> data) {
         List<FcmToken> allTokens = fcmTokenRepository.findAllActiveTokens();
-        int batchSize = 500; // HTTP v1 limit
+        int batchSize = 500;
         for (int i = 0; i < allTokens.size(); i += batchSize) {
             int end = Math.min(i + batchSize, allTokens.size());
             List<FcmToken> batch = allTokens.subList(i, end);
@@ -44,9 +44,9 @@ public class FirebaseMessagingService {
 
     private void sendBatchNotifications(List<FcmToken> tokens, String title, String body, Map<String, String> data) {
         List<String> tokenStrings = tokens.stream().map(FcmToken::getToken).toList();
-        log.info("🔍 Sending HTTP v1 batch to {} tokens", tokenStrings.size());
+
         if (tokenStrings.isEmpty()) {
-            log.warn("⚠️ No valid tokens for batch notification");
+
             return;
         }
         MulticastMessage message = MulticastMessage.builder()
@@ -54,7 +54,7 @@ public class FirebaseMessagingService {
                         .setTitle(title)
                         .setBody(body)
                         .build())
-                .putAllData(flattenData(data)) // Flatten nested JSON for v1
+                .putAllData(flattenData(data))
                 .addAllTokens(tokenStrings)
                 .setAndroidConfig(AndroidConfig.builder()
                         .setPriority(AndroidConfig.Priority.HIGH)
@@ -67,14 +67,12 @@ public class FirebaseMessagingService {
                 .build();
         try {
             BatchResponse response = FirebaseMessaging.getInstance().sendEachForMulticast(message);
-            log.info("✅ HTTP v1 batch: {} successes, {} failures out of {}",
-                    response.getSuccessCount(), response.getFailureCount(), tokenStrings.size());
+
             if (response.getFailureCount() > 0) {
                 handleFailedTokens(response, tokens);
             }
         } catch (FirebaseMessagingException e) {
-            log.error("🔥 HTTP v1 batch failed: {} (Code: {}, MessagingCode: {})",
-                    e.getMessage(), e.getErrorCode(), e.getMessagingErrorCode(), e);
+
         }
     }
 
@@ -97,10 +95,9 @@ public class FirebaseMessagingService {
                 .build();
         try {
             String response = FirebaseMessaging.getInstance().send(message);
-            log.info("✅ HTTP v1 message sent: {}", response);
+
         } catch (FirebaseMessagingException e) {
-            log.error("🔥 HTTP v1 message failed for token {}: {} (Code: {})",
-                    request.getToken(), e.getMessage(), e.getErrorCode(), e);
+
             if (isInvalidToken(e)) {
                 deactivateInvalidToken(request.getToken());
             }
@@ -132,7 +129,7 @@ public class FirebaseMessagingService {
                 .ifPresent(t -> {
                     t.setIsActive(false);
                     fcmTokenRepository.save(t);
-                    log.info("🚫 Deactivated invalid token: {}", token);
+
                 });
     }
 
