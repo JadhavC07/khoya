@@ -83,6 +83,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/alerts-social/**").permitAll()
 
                         .requestMatchers("/debug/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/social-api/webhook").permitAll()
 
                         // Admin only endpoints
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
