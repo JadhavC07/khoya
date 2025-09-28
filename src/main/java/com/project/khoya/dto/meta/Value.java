@@ -7,6 +7,6 @@ public class Value {
     private String item;
     private String comment_id;
     private String message;
-    private User from;
+//    private User from;
     private String created_time;
 }
