@@ -2,7 +2,8 @@ package com.project.khoya.controller;
 
 import org.springframework.web.bind.annotation.*;
 
-@RestController("/social-api")
+@RestController
+@RequestMapping("/social-api")
 public class WebhookController {
     private static final String VERIFY_TOKEN = "IGAAQ7Cogd14VBZAFFZAWFpKd3FhX0o0UDd0ZAGZA2NkFMdENz";
 
