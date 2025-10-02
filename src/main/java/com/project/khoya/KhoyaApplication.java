@@ -6,10 +6,11 @@ import org.springframework.cache.annotation.EnableCaching;
 
 @SpringBootApplication
 @EnableCaching
-public class KhoyaApplication {
+public class 	KhoyaApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(KhoyaApplication.class, args);
+
 	}
 
 }
