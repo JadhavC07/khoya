@@ -16,7 +16,9 @@
 //import org.springframework.data.domain.Sort;
 //import org.springframework.stereotype.Service;
 //import org.springframework.transaction.annotation.Transactional;
+//import org.springframework.web.multipart.MultipartFile;
 //
+//import java.io.IOException;
 //import java.time.LocalDateTime;
 //import java.util.List;
 //import java.util.Map;
@@ -31,25 +33,33 @@
 //    private final MissingAlertRepository alertRepository;
 //    private final UserRepository userRepository;
 //    private final FirebaseMessagingService firebaseMessagingService;
+//    private final FileUploadService fileUploadService;
 //
-//    public AlertResponse createAlert(CreateAlertRequest request, Long userId) {
+//    public AlertResponse createAlert(CreateAlertRequest request, MultipartFile imageFile, Long userId) throws IOException {
 //        User user = userRepository.findById(userId)
 //                .orElseThrow(() -> new RuntimeException("User not found"));
-//
-//
 //
 //        MissingAlert alert = new MissingAlert();
 //        alert.setTitle(request.getTitle());
 //        alert.setDescription(request.getDescription());
 //        alert.setLocation(request.getLocation());
-//        alert.setImageUrl(request.getImageUrl());
 //        alert.setStatus(AlertStatus.ACTIVE);
 //        alert.setPostedBy(user);
 //
+//        // Handle image upload if provided
+//        if (imageFile != null && !imageFile.isEmpty()) {
+//            try {
+//                String imagePath = fileUploadService.uploadImage(imageFile);
+//                alert.setImageUrl(imagePath);
+//                
+//            } catch (IOException e) {
+//                log.error("Failed to upload image for alert", e);
+//                throw new IOException("Failed to upload image: " + e.getMessage());
+//            }
+//        }
+//
 //        MissingAlert savedAlert = alertRepository.save(alert);
 //        log.info("New alert created with ID: {} by user: {}", savedAlert.getId(), user.getEmail());
-//
-//
 //
 //        // 🔔 Send notification to all users
 //        Map<String, String> data = Map.of(
@@ -63,6 +73,8 @@
 //                savedAlert.getTitle() + " reported missing in " + savedAlert.getLocation(),
 //                data
 //        );
+//
+//
 //
 //        return mapToAlertResponse(savedAlert);
 //    }
@@ -110,7 +122,7 @@
 //        return mapToAlertResponse(alert);
 //    }
 //
-//    public AlertResponse updateAlert(Long id, UpdateAlertRequest request, Long userId) {
+//    public AlertResponse updateAlert(Long id, UpdateAlertRequest request, MultipartFile imageFile, Long userId) throws IOException {
 //        MissingAlert alert = alertRepository.findById(id)
 //                .orElseThrow(() -> new AlertNotFoundException("Alert not found with id: " + id));
 //
@@ -118,6 +130,9 @@
 //        if (!alert.getPostedBy().getId().equals(userId)) {
 //            throw new UnauthorizedOperationException("You can only update your own alerts");
 //        }
+//
+//        // Store old image path for cleanup if needed
+//        String oldImagePath = alert.getImageUrl();
 //
 //        // Update fields if provided
 //        if (request.getTitle() != null) {
@@ -129,9 +144,24 @@
 //        if (request.getLocation() != null) {
 //            alert.setLocation(request.getLocation());
 //        }
-//        if (request.getImageUrl() != null) {
-//            alert.setImageUrl(request.getImageUrl());
+//
+//        // Handle image update
+//        if (imageFile != null && !imageFile.isEmpty()) {
+//            // Delete old image if it exists and is an uploaded file
+//            if (oldImagePath != null && oldImagePath.startsWith("/uploads/")) {
+//                fileUploadService.deleteImage(oldImagePath);
+//            }
+//
+//            try {
+//                String newImagePath = fileUploadService.uploadImage(imageFile);
+//                alert.setImageUrl(newImagePath);
+//                
+//            } catch (IOException e) {
+//                log.error("Failed to update image for alert ID: {}", id, e);
+//                throw new IOException("Failed to update image: " + e.getMessage());
+//            }
 //        }
+//
 //        if (request.getStatus() != null) {
 //            alert.setStatus(request.getStatus());
 //            if (request.getStatus() == AlertStatus.FOUND && alert.getFoundAt() == null) {
@@ -189,6 +219,11 @@
 //            throw new UnauthorizedOperationException("You can only delete your own alerts");
 //        }
 //
+//        // Delete associated image if it exists and is an uploaded file
+//        if (alert.getImageUrl() != null && alert.getImageUrl().startsWith("/uploads/")) {
+//            fileUploadService.deleteImage(alert.getImageUrl());
+//        }
+//
 //        alertRepository.delete(alert);
 //        log.info("Alert deleted with ID: {} by user: {} (admin: {})", id, userId, isAdmin);
 //    }
@@ -208,7 +243,7 @@
 //        alert.setReportCount(alert.getReportCount() + 1);
 //        alertRepository.save(alert);
 //
-//        log.info("Report count incremented for alert ID: {}", id);
+//        
 //    }
 //
 //    private AlertResponse mapToAlertResponse(MissingAlert alert) {
@@ -230,10 +265,7 @@
 //                        .build())
 //                .build();
 //    }
-//
-//
 //}
-//
 
 package com.project.khoya.service;
 
@@ -270,7 +302,8 @@ public class AlertService {
     private final MissingAlertRepository alertRepository;
     private final UserRepository userRepository;
     private final FirebaseMessagingService firebaseMessagingService;
-    private final FileUploadService fileUploadService;
+    private final CloudinaryService cloudinaryService;
+    private final SocialMediaPostingService postingService;
 
     public AlertResponse createAlert(CreateAlertRequest request, MultipartFile imageFile, Long userId) throws IOException {
         User user = userRepository.findById(userId)
@@ -283,14 +316,14 @@ public class AlertService {
         alert.setStatus(AlertStatus.ACTIVE);
         alert.setPostedBy(user);
 
-        // Handle image upload if provided
+        // Handle image upload to Cloudinary if provided
         if (imageFile != null && !imageFile.isEmpty()) {
             try {
-                String imagePath = fileUploadService.uploadImage(imageFile);
-                alert.setImageUrl(imagePath);
-                log.info("Image uploaded for alert: {}", imagePath);
+                String imageUrl = cloudinaryService.uploadImage(imageFile);
+                alert.setImageUrl(imageUrl);
+                
             } catch (IOException e) {
-                log.error("Failed to upload image for alert", e);
+                log.error("Failed to upload image to Cloudinary", e);
                 throw new IOException("Failed to upload image: " + e.getMessage());
             }
         }
@@ -298,20 +331,12 @@ public class AlertService {
         MissingAlert savedAlert = alertRepository.save(alert);
         log.info("New alert created with ID: {} by user: {}", savedAlert.getId(), user.getEmail());
 
-        // 🔔 Send notification to all users
-        Map<String, String> data = Map.of(
-                "alertId", savedAlert.getId().toString(),
-                "type", "NEW_ALERT",
-                "location", savedAlert.getLocation() != null ? savedAlert.getLocation() : ""
-        );
 
-        firebaseMessagingService.sendPushNotificationToAllUsers(
-                "🚨 New Missing Person Alert",
-                savedAlert.getTitle() + " reported missing in " + savedAlert.getLocation(),
-                data
-        );
+        if (savedAlert.getImageUrl() != null) {
+            postingService.postToSocialMediaAsync(savedAlert);
+        }
 
-       
+        postingService.sendNotificationAsync(savedAlert);
 
         return mapToAlertResponse(savedAlert);
     }
@@ -368,8 +393,8 @@ public class AlertService {
             throw new UnauthorizedOperationException("You can only update your own alerts");
         }
 
-        // Store old image path for cleanup if needed
-        String oldImagePath = alert.getImageUrl();
+        // Store old image URL for cleanup if needed
+        String oldImageUrl = alert.getImageUrl();
 
         // Update fields if provided
         if (request.getTitle() != null) {
@@ -384,15 +409,17 @@ public class AlertService {
 
         // Handle image update
         if (imageFile != null && !imageFile.isEmpty()) {
-            // Delete old image if it exists and is an uploaded file
-            if (oldImagePath != null && oldImagePath.startsWith("/uploads/")) {
-                fileUploadService.deleteImage(oldImagePath);
-            }
-
             try {
-                String newImagePath = fileUploadService.uploadImage(imageFile);
-                alert.setImageUrl(newImagePath);
-                log.info("Image updated for alert ID: {} - new path: {}", id, newImagePath);
+                // Upload new image to Cloudinary
+                String newImageUrl = cloudinaryService.uploadImage(imageFile);
+                alert.setImageUrl(newImageUrl);
+                
+
+                // Delete old image from Cloudinary if it exists
+                if (oldImageUrl != null && oldImageUrl.contains("cloudinary.com")) {
+                    cloudinaryService.deleteImage(oldImageUrl);
+                    
+                }
             } catch (IOException e) {
                 log.error("Failed to update image for alert ID: {}", id, e);
                 throw new IOException("Failed to update image: " + e.getMessage());
@@ -456,9 +483,10 @@ public class AlertService {
             throw new UnauthorizedOperationException("You can only delete your own alerts");
         }
 
-        // Delete associated image if it exists and is an uploaded file
-        if (alert.getImageUrl() != null && alert.getImageUrl().startsWith("/uploads/")) {
-            fileUploadService.deleteImage(alert.getImageUrl());
+        // Delete associated image from Cloudinary if it exists
+        if (alert.getImageUrl() != null && alert.getImageUrl().contains("cloudinary.com")) {
+            cloudinaryService.deleteImage(alert.getImageUrl());
+            
         }
 
         alertRepository.delete(alert);
@@ -480,7 +508,7 @@ public class AlertService {
         alert.setReportCount(alert.getReportCount() + 1);
         alertRepository.save(alert);
 
-        log.info("Report count incremented for alert ID: {}", id);
+        
     }
 
     private AlertResponse mapToAlertResponse(MissingAlert alert) {
