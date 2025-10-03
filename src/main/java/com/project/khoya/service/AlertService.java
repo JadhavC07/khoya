@@ -316,21 +316,17 @@ public class AlertService {
         alert.setStatus(AlertStatus.ACTIVE);
         alert.setPostedBy(user);
 
-        // Handle image upload to Cloudinary if provided
         if (imageFile != null && !imageFile.isEmpty()) {
             try {
                 String imageUrl = cloudinaryService.uploadImage(imageFile);
                 alert.setImageUrl(imageUrl);
                 
             } catch (IOException e) {
-                log.error("Failed to upload image to Cloudinary", e);
                 throw new IOException("Failed to upload image: " + e.getMessage());
             }
         }
 
         MissingAlert savedAlert = alertRepository.save(alert);
-        log.info("New alert created with ID: {} by user: {}", savedAlert.getId(), user.getEmail());
-
 
         if (savedAlert.getImageUrl() != null) {
             postingService.postToSocialMediaAsync(savedAlert);
@@ -388,15 +384,14 @@ public class AlertService {
         MissingAlert alert = alertRepository.findById(id)
                 .orElseThrow(() -> new AlertNotFoundException("Alert not found with id: " + id));
 
-        // Check if user owns this alert
+
         if (!alert.getPostedBy().getId().equals(userId)) {
             throw new UnauthorizedOperationException("You can only update your own alerts");
         }
 
-        // Store old image URL for cleanup if needed
         String oldImageUrl = alert.getImageUrl();
 
-        // Update fields if provided
+
         if (request.getTitle() != null) {
             alert.setTitle(request.getTitle());
         }
@@ -407,21 +402,14 @@ public class AlertService {
             alert.setLocation(request.getLocation());
         }
 
-        // Handle image update
         if (imageFile != null && !imageFile.isEmpty()) {
             try {
-                // Upload new image to Cloudinary
                 String newImageUrl = cloudinaryService.uploadImage(imageFile);
                 alert.setImageUrl(newImageUrl);
-                
-
-                // Delete old image from Cloudinary if it exists
                 if (oldImageUrl != null && oldImageUrl.contains("cloudinary.com")) {
                     cloudinaryService.deleteImage(oldImageUrl);
-                    
                 }
             } catch (IOException e) {
-                log.error("Failed to update image for alert ID: {}", id, e);
                 throw new IOException("Failed to update image: " + e.getMessage());
             }
         }
@@ -434,8 +422,6 @@ public class AlertService {
         }
 
         MissingAlert updatedAlert = alertRepository.save(alert);
-        log.info("Alert updated with ID: {} by user: {}", updatedAlert.getId(), userId);
-
         return mapToAlertResponse(updatedAlert);
     }
 
@@ -443,7 +429,6 @@ public class AlertService {
         MissingAlert alert = alertRepository.findById(id)
                 .orElseThrow(() -> new AlertNotFoundException("Alert not found with id: " + id));
 
-        // Check if user owns this alert
         if (!alert.getPostedBy().getId().equals(userId)) {
             throw new UnauthorizedOperationException("You can only mark your own alerts as found");
         }
@@ -451,14 +436,12 @@ public class AlertService {
         alert.setStatus(AlertStatus.FOUND);
         alert.setFoundAt(LocalDateTime.now());
 
-        // If found details provided, append to description
         if (request.getFoundDetails() != null && !request.getFoundDetails().trim().isEmpty()) {
             String updatedDescription = alert.getDescription() + "\n\nFound Details: " + request.getFoundDetails();
             alert.setDescription(updatedDescription);
         }
 
         MissingAlert updatedAlert = alertRepository.save(alert);
-        log.info("Alert marked as found with ID: {} by user: {}", updatedAlert.getId(), userId);
 
         Map<String, String> data = Map.of(
                 "alertId", updatedAlert.getId().toString(),
@@ -478,19 +461,14 @@ public class AlertService {
         MissingAlert alert = alertRepository.findById(id)
                 .orElseThrow(() -> new AlertNotFoundException("Alert not found with id: " + id));
 
-        // Only alert owner or admin can delete
         if (!isAdmin && !alert.getPostedBy().getId().equals(userId)) {
             throw new UnauthorizedOperationException("You can only delete your own alerts");
         }
 
-        // Delete associated image from Cloudinary if it exists
         if (alert.getImageUrl() != null && alert.getImageUrl().contains("cloudinary.com")) {
             cloudinaryService.deleteImage(alert.getImageUrl());
-            
         }
-
         alertRepository.delete(alert);
-        log.info("Alert deleted with ID: {} by user: {} (admin: {})", id, userId, isAdmin);
     }
 
     public List<AlertResponse> getUserAlerts(Long userId) {
