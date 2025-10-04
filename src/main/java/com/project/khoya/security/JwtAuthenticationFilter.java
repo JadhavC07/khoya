@@ -2,6 +2,7 @@ package com.project.khoya.security;
 
 import com.project.khoya.config.JwtUtil;
 import com.project.khoya.service.CustomUserDetailsService;
+import com.project.khoya.service.TokenBlacklistService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,6 +25,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final CustomUserDetailsService userDetailsService;
+    private final TokenBlacklistService tokenBlacklistService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -32,6 +34,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             String jwt = parseJwt(request);
             if (jwt != null) {
+                // Check if token is blacklisted
+                if (tokenBlacklistService.isBlacklisted(jwt)) {
+                    log.warn("Attempted use of blacklisted token");
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+
+                // Verify it's an access token
+                if (!jwtUtil.isAccessToken(jwt)) {
+                    log.warn("Refresh token used instead of access token");
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+
                 String userEmail = jwtUtil.extractUsername(jwt);
 
                 if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
