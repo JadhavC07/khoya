@@ -82,6 +82,12 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/search/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/alerts-social/**").permitAll()
 
+                        // Public GET endpoints for vote counts and comment stats
+                        .requestMatchers(HttpMethod.GET, "/api/social/alerts/*/votes").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/social/comments/*/votes").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/social/comments/*/stats").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/social/alerts/*/comments").permitAll()
+
                         .requestMatchers("/debug/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/social-api/webhook").permitAll()
 

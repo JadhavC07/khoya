@@ -164,6 +164,52 @@ public class SocialInteractionController {
         return ResponseEntity.ok(response);
     }
 
+    // PUBLIC VOTE COUNT ENDPOINTS
+
+    @GetMapping("/alerts/{alertId}/votes")
+    @Operation(
+            summary = "Get alert vote counts (Public)",
+            description = "Get vote statistics for a specific alert. This endpoint is public and does not require authentication."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Vote counts retrieved successfully"
+            ),
+            @ApiResponse(responseCode = "404", description = "Alert not found")
+    })
+    public ResponseEntity<Map<String, Object>> getAlertVotes(
+            @Parameter(description = "Alert ID", required = true)
+            @PathVariable Long alertId,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        Long userId = userDetails != null ? userDetails.getUser().getId() : null;
+        Map<String, Object> votes = socialService.getAlertVotes(alertId, userId);
+        return ResponseEntity.ok(votes);
+    }
+
+    @GetMapping("/comments/{commentId}/votes")
+    @Operation(
+            summary = "Get comment vote counts (Public)",
+            description = "Get vote statistics for a specific comment. This endpoint is public and does not require authentication."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Vote counts retrieved successfully"
+            ),
+            @ApiResponse(responseCode = "404", description = "Comment not found")
+    })
+    public ResponseEntity<Map<String, Object>> getCommentVotes(
+            @Parameter(description = "Comment ID", required = true)
+            @PathVariable Long commentId,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        Long userId = userDetails != null ? userDetails.getUser().getId() : null;
+        Map<String, Object> votes = socialService.getCommentVotes(commentId, userId);
+        return ResponseEntity.ok(votes);
+    }
+
     // USER ACTIVITY ENDPOINTS
 
     @GetMapping("/users/{userId}/comments")
@@ -185,7 +231,6 @@ public class SocialInteractionController {
 
             @AuthenticationPrincipal CustomUserDetails userDetails) {
 
-        // Users can only see their own comments unless they're admin
         Long requestingUserId = userDetails.getUser().getId();
         boolean isAdmin = userDetails.getUser().getRole() == Role.ADMIN;
 
@@ -210,4 +255,3 @@ public class SocialInteractionController {
         return ResponseEntity.ok(stats);
     }
 }
-
