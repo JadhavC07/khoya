@@ -58,10 +58,10 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Public endpoints
-                        .requestMatchers("/api/auth/**").permitAll()
+                        // Public auth endpoints (login, register, refresh token)
+                        .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/refresh").permitAll()
 
-                        // Swagger UI endpoints - more comprehensive patterns
+                        // Swagger UI endpoints
                         .requestMatchers(
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
@@ -84,6 +84,9 @@ public class SecurityConfig {
 
                         .requestMatchers("/debug/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/social-api/webhook").permitAll()
+
+                        // Logout endpoints require authentication
+                        .requestMatchers("/api/auth/logout", "/api/auth/logout-all").authenticated()
 
                         // Admin only endpoints
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")

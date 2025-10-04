@@ -382,14 +382,14 @@ public class AlertController {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(
             summary = "Create new alert with image",
-            description = "Create a new missing person alert with optional image upload to Cloudinary",
+            description = "Create a new missing person alert with optional image upload to Cloudinary. Returns immediately while social media posting happens asynchronously.",
             security = @SecurityRequirement(name = "bearerAuth")
     )
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "201",
                     description = "Alert created successfully",
-                    content = @Content(schema = @Schema(implementation = AlertResponse.class))
+                    content = @Content(schema = @Schema(implementation = SimpleAlertResponse.class))
             ),
             @ApiResponse(responseCode = "400", description = "Invalid input or image"),
             @ApiResponse(responseCode = "401", description = "Unauthorized")
@@ -416,7 +416,7 @@ public class AlertController {
             request.setDescription(description);
             request.setLocation(location);
 
-            AlertResponse response = alertService.createAlert(request, image, userDetails.getUser().getId());
+            SimpleAlertResponse response = alertService.createAlert(request, image, userDetails.getUser().getId());
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
 
         } catch (IOException e) {

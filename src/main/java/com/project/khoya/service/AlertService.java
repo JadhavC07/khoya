@@ -275,6 +275,7 @@ import com.project.khoya.entity.MissingAlert;
 import com.project.khoya.entity.User;
 import com.project.khoya.exception.AlertNotFoundException;
 import com.project.khoya.exception.UnauthorizedOperationException;
+import com.project.khoya.messaging.AlertMessageProducer;
 import com.project.khoya.repository.MissingAlertRepository;
 import com.project.khoya.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -303,9 +304,9 @@ public class AlertService {
     private final UserRepository userRepository;
     private final FirebaseMessagingService firebaseMessagingService;
     private final CloudinaryService cloudinaryService;
-    private final SocialMediaPostingService postingService;
+    private final AlertMessageProducer messageProducer;
 
-    public AlertResponse createAlert(CreateAlertRequest request, MultipartFile imageFile, Long userId) throws IOException {
+    public SimpleAlertResponse  createAlert(CreateAlertRequest request, MultipartFile imageFile, Long userId) throws IOException {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -320,7 +321,7 @@ public class AlertService {
             try {
                 String imageUrl = cloudinaryService.uploadImage(imageFile);
                 alert.setImageUrl(imageUrl);
-                
+
             } catch (IOException e) {
                 throw new IOException("Failed to upload image: " + e.getMessage());
             }
@@ -328,13 +329,29 @@ public class AlertService {
 
         MissingAlert savedAlert = alertRepository.save(alert);
 
+        // Send messages to RabbitMQ queues for async processing
+        AlertMessage alertMessage = AlertMessage.builder()
+                .alertId(savedAlert.getId())
+                .title(savedAlert.getTitle())
+                .description(savedAlert.getDescription())
+                .location(savedAlert.getLocation())
+                .imageUrl(savedAlert.getImageUrl())
+                .build();
+
+        // Only send to social media queue if image is present
         if (savedAlert.getImageUrl() != null) {
-            postingService.postToSocialMediaAsync(savedAlert);
+            messageProducer.sendSocialMediaMessage(alertMessage);
         }
 
-        postingService.sendNotificationAsync(savedAlert);
+        // Always send notification
+        messageProducer.sendNotificationMessage(alertMessage);
 
-        return mapToAlertResponse(savedAlert);
+
+        return  SimpleAlertResponse.builder()
+                .status("success")
+                .message("Alert created successfully and will be posted to social media shortly")
+                .alertId(savedAlert.getId())
+                .build();
     }
 
     public AlertListResponse getAllAlerts(int page, int size, String location, AlertStatus status) {
