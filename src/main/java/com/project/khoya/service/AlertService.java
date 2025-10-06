@@ -45,7 +45,8 @@ public class AlertService {
             @CacheEvict(value = "alerts", allEntries = true),
             @CacheEvict(value = "userAlerts", key = "#userId")
     })
-    public SimpleAlertResponse  createAlert(CreateAlertRequest request, MultipartFile imageFile, Long userId) throws IOException {
+    public SimpleAlertResponse createAlert(CreateAlertRequest request, MultipartFile imageFile, Long userId) throws IOException {
+        log.info("Creating alert for user: {}", userId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -60,7 +61,6 @@ public class AlertService {
             try {
                 String imageUrl = cloudinaryService.uploadImage(imageFile);
                 alert.setImageUrl(imageUrl);
-
             } catch (IOException e) {
                 throw new IOException("Failed to upload image: " + e.getMessage());
             }
@@ -77,16 +77,12 @@ public class AlertService {
                 .imageUrl(savedAlert.getImageUrl())
                 .build();
 
-        // Only send to social media queue if image is present
         if (savedAlert.getImageUrl() != null) {
             messageProducer.sendSocialMediaMessage(alertMessage);
         }
-
-        // Always send notification
         messageProducer.sendNotificationMessage(alertMessage);
 
-
-        return  SimpleAlertResponse.builder()
+        return SimpleAlertResponse.builder()
                 .status("success")
                 .message("Alert created successfully and will be posted to social media shortly")
                 .alertId(savedAlert.getId())
@@ -95,8 +91,10 @@ public class AlertService {
 
     @Cacheable(value = "alerts", key = "#page + '-' + #size + '-' + #location + '-' + #status")
     public AlertListResponse getAllAlerts(int page, int size, String location, AlertStatus status) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        log.info("Fetching alerts from DB - page: {}, size: {}, location: {}, status: {}",
+                page, size, location, status);
 
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         Page<MissingAlert> alertPage;
 
         if (location != null && !location.trim().isEmpty()) {
@@ -132,6 +130,7 @@ public class AlertService {
 
     @Cacheable(value = "alertById", key = "#id")
     public AlertResponse getAlertById(Long id) {
+        log.info("Fetching alert by ID from DB: {}", id);
         MissingAlert alert = alertRepository.findById(id)
                 .orElseThrow(() -> new AlertNotFoundException("Alert not found with id: " + id));
 
@@ -146,16 +145,15 @@ public class AlertService {
             }
     )
     public AlertResponse updateAlert(Long id, UpdateAlertRequest request, MultipartFile imageFile, Long userId) throws IOException {
+        log.info("Updating alert: {} by user: {}", id, userId);
         MissingAlert alert = alertRepository.findById(id)
                 .orElseThrow(() -> new AlertNotFoundException("Alert not found with id: " + id));
-
 
         if (!alert.getPostedBy().getId().equals(userId)) {
             throw new UnauthorizedOperationException("You can only update your own alerts");
         }
 
         String oldImageUrl = alert.getImageUrl();
-
 
         if (request.getTitle() != null) {
             alert.setTitle(request.getTitle());
@@ -198,6 +196,7 @@ public class AlertService {
             }
     )
     public AlertResponse markAsFound(Long id, FoundRequest request, Long userId) {
+        log.info("Marking alert as found: {} by user: {}", id, userId);
         MissingAlert alert = alertRepository.findById(id)
                 .orElseThrow(() -> new AlertNotFoundException("Alert not found with id: " + id));
 
@@ -235,6 +234,7 @@ public class AlertService {
             @CacheEvict(value = "userAlerts", key = "#userId")
     })
     public void deleteAlert(Long id, Long userId, boolean isAdmin) {
+        log.info("Deleting alert: {} by user: {}, isAdmin: {}", id, userId, isAdmin);
         MissingAlert alert = alertRepository.findById(id)
                 .orElseThrow(() -> new AlertNotFoundException("Alert not found with id: " + id));
 
@@ -248,9 +248,9 @@ public class AlertService {
         alertRepository.delete(alert);
     }
 
-
     @Cacheable(value = "userAlerts", key = "#userId")
     public List<AlertResponse> getUserAlerts(Long userId) {
+        log.info("Fetching user alerts from DB for user: {}", userId);
         List<MissingAlert> alerts = alertRepository.findByPostedByIdOrderByCreatedAtDesc(userId);
 
         return alerts.stream()
@@ -263,13 +263,12 @@ public class AlertService {
             @CacheEvict(value = "alerts", allEntries = true)
     })
     public void incrementReportCount(Long id) {
+        log.info("Incrementing report count for alert: {}", id);
         MissingAlert alert = alertRepository.findById(id)
                 .orElseThrow(() -> new AlertNotFoundException("Alert not found with id: " + id));
 
         alert.setReportCount(alert.getReportCount() + 1);
         alertRepository.save(alert);
-
-        
     }
 
     private AlertResponse mapToAlertResponse(MissingAlert alert) {
