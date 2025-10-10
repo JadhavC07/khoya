@@ -37,6 +37,7 @@ public class AlertController {
 
     private final AlertService alertService;
 
+
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(
             summary = "Create new alert with image",
@@ -289,4 +290,100 @@ public class AlertController {
 
         return ResponseEntity.ok(response);
     }
+
+    @PostMapping(value = "/search/similar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(
+            summary = "Find visually similar alerts using AI",
+            description = "Upload an image to find visually similar missing person alerts using ResNet50 deep learning model. " +
+                    "Returns alerts ranked by visual similarity with confidence scores. " +
+                    "Use this to check if a person has already been reported missing or to find potential matches."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Similar alerts found successfully",
+                    content = @Content(schema = @Schema(implementation = SimilarAlertResponse.class))
+            ),
+            @ApiResponse(responseCode = "400", description = "Invalid image or request"),
+            @ApiResponse(responseCode = "500", description = "Feature extraction failed")
+    })
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<?> findSimilarAlerts(
+            @Parameter(description = "Image to search for similar alerts", required = true)
+            @RequestParam("image") MultipartFile image,
+
+            @Parameter(description = "Number of top similar results to return", example = "10")
+            @RequestParam(defaultValue = "10") int topK,
+
+            @Parameter(description = "Minimum similarity threshold (0.0 to 1.0). Higher values return only very similar matches.", example = "0.5")
+            @RequestParam(defaultValue = "0.5") double threshold) {
+
+        try {
+            if (image == null || image.isEmpty()) {
+                Map<String, String> errorResponse = new HashMap<>();
+                errorResponse.put("status", "error");
+                errorResponse.put("message", "Image is required for similarity search");
+                return ResponseEntity.badRequest().body(errorResponse);
+            }
+
+            if (threshold < 0.0 || threshold > 1.0) {
+                Map<String, String> errorResponse = new HashMap<>();
+                errorResponse.put("status", "error");
+                errorResponse.put("message", "Threshold must be between 0.0 and 1.0");
+                return ResponseEntity.badRequest().body(errorResponse);
+            }
+
+            List<SimilarAlertResponse> similarAlerts = alertService.findSimilarAlerts(image, topK, threshold);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "success");
+            response.put("count", similarAlerts.size());
+            response.put("threshold", threshold);
+            response.put("results", similarAlerts);
+
+            if (similarAlerts.isEmpty()) {
+                response.put("message", "No similar alerts found above the similarity threshold of " + (threshold * 100) + "%");
+            }
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("Error finding similar alerts", e);
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("status", "error");
+            errorResponse.put("message", "Failed to find similar alerts: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    @PostMapping(value = "/search/similar/quick", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(
+            summary = "Quick similarity search with default settings",
+            description = "Simplified endpoint for finding similar alerts with default threshold (60%) and top 5 results"
+    )
+    @ApiResponse(responseCode = "200", description = "Similar alerts found")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<?> findSimilarAlertsQuick(
+            @Parameter(description = "Image to search for", required = true)
+            @RequestParam("image") MultipartFile image) {
+
+        try {
+            List<SimilarAlertResponse> similarAlerts = alertService.findSimilarAlerts(image, 5, 0.6);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "success");
+            response.put("count", similarAlerts.size());
+            response.put("results", similarAlerts);
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("Error in quick similarity search", e);
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("status", "error");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
 }
