@@ -307,7 +307,6 @@ public class AlertController {
             @ApiResponse(responseCode = "400", description = "Invalid image or request"),
             @ApiResponse(responseCode = "500", description = "Feature extraction failed")
     })
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     public ResponseEntity<?> findSimilarAlerts(
             @Parameter(description = "Image to search for similar alerts", required = true)
             @RequestParam("image") MultipartFile image,
