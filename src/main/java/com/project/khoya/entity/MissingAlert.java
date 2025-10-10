@@ -92,6 +92,10 @@ public class MissingAlert {
     @OneToMany(mappedBy = "alert", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Vote> votes = new ArrayList<>();
 
+    @Lob
+    @Column(columnDefinition = "BLOB")
+    private byte[] imageEmbedding;
+
 
     public boolean isFlagged() {
         return Boolean.TRUE.equals(this.isFlagged);

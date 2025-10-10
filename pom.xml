@@ -141,6 +141,21 @@
 			<artifactId>spring-boot-starter-webflux</artifactId>
 			<version>3.5.5</version>
 		</dependency>
+		<dependency>
+			<groupId>ai.djl</groupId>
+			<artifactId>api</artifactId>
+			<version>0.32.0</version>
+		</dependency>
+		<dependency>
+			<groupId>ai.djl.pytorch</groupId>
+			<artifactId>pytorch-engine</artifactId>
+			<version>0.32.0</version>
+		</dependency>
+		<dependency>
+			<groupId>ai.djl.pytorch</groupId>
+			<artifactId>pytorch-model-zoo</artifactId>
+			<version>0.32.0</version>
+		</dependency>
 	</dependencies>
 
 	<build>

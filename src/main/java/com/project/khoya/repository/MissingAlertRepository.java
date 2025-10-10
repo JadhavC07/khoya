@@ -21,6 +21,9 @@ public interface MissingAlertRepository extends JpaRepository<MissingAlert, Long
     // Find alerts by status
     Page<MissingAlert> findByStatus(AlertStatus status, Pageable pageable);
 
+    // New: Find all alerts by status without paging
+    List<MissingAlert> findByStatus(AlertStatus status);
+
     // Find alerts by location and status
     Page<MissingAlert> findByLocationContainingIgnoreCaseAndStatus(String location, AlertStatus status, Pageable pageable);
 
