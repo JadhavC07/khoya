@@ -481,6 +481,58 @@ public class AlertService {
      * @param similarityThreshold Minimum similarity score (0.0 to 1.0)
      * @return List of similar alerts with similarity scores
      */
+//    public List<SimilarAlertResponse> findSimilarAlerts(
+//            MultipartFile newImageFile,
+//            int topK,
+//            double similarityThreshold) throws Exception {
+//
+//        log.info("Searching for similar alerts (topK: {}, threshold: {})", topK, similarityThreshold);
+//
+//        // Extract features from the query image
+//        Image queryImage = ImageFactory.getInstance().fromInputStream(newImageFile.getInputStream());
+//        float[] queryEmbedding = featureExtractionService.extractFeatures(queryImage);
+//
+//        // Get all active alerts with embeddings
+//        List<MissingAlert> allAlerts = alertRepository.findByStatus(AlertStatus.ACTIVE);
+//        List<MissingAlert> alertsWithEmbeddings = allAlerts.stream()
+//                .filter(alert -> alert.getImageEmbedding() != null && alert.getImageEmbedding().length > 0)
+//                .collect(Collectors.toList());
+//
+//        log.info("Comparing against {} alerts with embeddings", alertsWithEmbeddings.size());
+//
+//        // Calculate similarities and create response objects
+//        List<SimilarAlertResponse> similarAlerts = new ArrayList<>();
+//
+//        for (MissingAlert alert : alertsWithEmbeddings) {
+//            try {
+//                float[] alertEmbedding = featureExtractionService.bytesToFloatArray(alert.getImageEmbedding());
+//                double similarity = featureExtractionService.calculateCosineSimilarity(queryEmbedding, alertEmbedding);
+//
+//                // Only include alerts above the threshold
+//                if (similarity >= similarityThreshold) {
+//                    SimilarAlertResponse response = SimilarAlertResponse.builder()
+//                            .alert(mapToAlertResponse(alert))
+//                            .similarityScore(similarity)
+//                            .build();
+//                    similarAlerts.add(response);
+//                }
+//            } catch (Exception e) {
+//                log.warn("Failed to calculate similarity for alert {}: {}", alert.getId(), e.getMessage());
+//            }
+//        }
+//
+//        // Sort by similarity (descending) and take top K
+//        similarAlerts.sort((a, b) -> Double.compare(b.getSimilarityScore(), a.getSimilarityScore()));
+//        List<SimilarAlertResponse> topResults = similarAlerts.stream()
+//                .limit(topK)
+//                .collect(Collectors.toList());
+//
+//        log.info("Found {} similar alerts (filtered from {} total matches)",
+//                topResults.size(), similarAlerts.size());
+//
+//        return topResults;
+//    }
+
     public List<SimilarAlertResponse> findSimilarAlerts(
             MultipartFile newImageFile,
             int topK,
@@ -492,23 +544,47 @@ public class AlertService {
         Image queryImage = ImageFactory.getInstance().fromInputStream(newImageFile.getInputStream());
         float[] queryEmbedding = featureExtractionService.extractFeatures(queryImage);
 
+        int expectedDimension = featureExtractionService.getFeatureDimension();
+        log.info("Query embedding dimension: {}, expected: {}", queryEmbedding.length, expectedDimension);
+
         // Get all active alerts with embeddings
         List<MissingAlert> allAlerts = alertRepository.findByStatus(AlertStatus.ACTIVE);
-        List<MissingAlert> alertsWithEmbeddings = allAlerts.stream()
-                .filter(alert -> alert.getImageEmbedding() != null && alert.getImageEmbedding().length > 0)
-                .collect(Collectors.toList());
 
-        log.info("Comparing against {} alerts with embeddings", alertsWithEmbeddings.size());
+        // Filter alerts that have the CORRECT dimension (2048)
+        List<MissingAlert> alertsWithCorrectDimension = allAlerts.stream()
+                .filter(alert -> {
+                    if (alert.getImageEmbedding() == null || alert.getImageEmbedding().length == 0) {
+                        return false;
+                    }
 
-        // Calculate similarities and create response objects
+                    int alertDimension = alert.getImageEmbedding().length / Float.BYTES;
+                    boolean isCorrect = alertDimension == expectedDimension;
+
+                    if (!isCorrect) {
+                        log.debug("Skipping alert {} - wrong dimension: {} (expected {})",
+                                alert.getId(), alertDimension, expectedDimension);
+                    }
+
+                    return isCorrect;
+                })
+                .toList();
+
+        log.info("Comparing against {} alerts with correct dimension ({})",
+                alertsWithCorrectDimension.size(), expectedDimension);
+
+        if (alertsWithCorrectDimension.isEmpty()) {
+            log.warn("No alerts found with {}-dimensional embeddings. Create new alerts to test similarity search.",
+                    expectedDimension);
+        }
+
+        // Calculate similarities
         List<SimilarAlertResponse> similarAlerts = new ArrayList<>();
 
-        for (MissingAlert alert : alertsWithEmbeddings) {
+        for (MissingAlert alert : alertsWithCorrectDimension) {
             try {
                 float[] alertEmbedding = featureExtractionService.bytesToFloatArray(alert.getImageEmbedding());
                 double similarity = featureExtractionService.calculateCosineSimilarity(queryEmbedding, alertEmbedding);
 
-                // Only include alerts above the threshold
                 if (similarity >= similarityThreshold) {
                     SimilarAlertResponse response = SimilarAlertResponse.builder()
                             .alert(mapToAlertResponse(alert))
