@@ -368,7 +368,7 @@ import com.project.khoya.exception.UnauthorizedOperationException;
 import com.project.khoya.messaging.AlertMessageProducer;
 import com.project.khoya.repository.MissingAlertRepository;
 import com.project.khoya.repository.UserRepository;
-import com.project.khoya.service.image.FeatureExtractionService;
+import com.project.khoya.service.Image.FeatureExtractionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;

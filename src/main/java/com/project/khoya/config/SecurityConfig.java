@@ -80,6 +80,8 @@ public class SecurityConfig {
                         // Public read access to alerts and search
                         .requestMatchers(HttpMethod.GET, "/api/alerts/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/search/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/alerts/search/similar/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/search/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/alerts-social/**").permitAll()
 
                         // Public GET endpoints for vote counts and comment stats
