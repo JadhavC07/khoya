@@ -27,20 +27,12 @@ public class RefreshTokenService {
 
     @Transactional
     public RefreshToken createRefreshToken(Long userId, String deviceInfo, String ipAddress) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
 
         // Delete old refresh tokens for this user
         refreshTokenRepository.deleteByUser(user);
 
-        RefreshToken refreshToken = RefreshToken.builder()
-                .user(user)
-                .token(UUID.randomUUID().toString())
-                .expiryDate(LocalDateTime.now().plusSeconds(jwtUtil.getRefreshTokenExpiration() / 1000))
-                .deviceInfo(deviceInfo)
-                .ipAddress(ipAddress)
-                .revoked(false)
-                .build();
+        RefreshToken refreshToken = RefreshToken.builder().user(user).token(UUID.randomUUID().toString()).expiryDate(LocalDateTime.now().plusSeconds(jwtUtil.getRefreshTokenExpiration() / 1000)).deviceInfo(deviceInfo).ipAddress(ipAddress).revoked(false).build();
 
         return refreshTokenRepository.save(refreshToken);
     }
@@ -59,8 +51,7 @@ public class RefreshTokenService {
     }
 
     public RefreshToken findByToken(String token) {
-        return refreshTokenRepository.findByToken(token)
-                .orElseThrow(() -> new TokenRefreshException("Refresh token not found"));
+        return refreshTokenRepository.findByToken(token).orElseThrow(() -> new TokenRefreshException("Refresh token not found"));
     }
 
     @Transactional
@@ -72,8 +63,7 @@ public class RefreshTokenService {
 
     @Transactional
     public void revokeAllUserTokens(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
         refreshTokenRepository.deleteByUser(user);
     }
 
@@ -81,9 +71,7 @@ public class RefreshTokenService {
     @Scheduled(cron = "0 0 2 * * ?")
     @Transactional
     public void cleanupExpiredTokens() {
-        log.info("Starting cleanup of expired refresh tokens");
         refreshTokenRepository.deleteExpiredAndRevoked(LocalDateTime.now());
-        log.info("Completed cleanup of expired refresh tokens");
     }
 
     public String getDeviceInfo(HttpServletRequest request) {

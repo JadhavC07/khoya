@@ -24,40 +24,22 @@ public class NotificationController {
     private final FcmTokenService fcmTokenService;
 
     @PostMapping("/token")
-    @Operation(
-            summary = "Register FCM token",
-            description = "Register or update FCM token for push notifications",
-            security = @SecurityRequirement(name = "bearerAuth")
-    )
+    @Operation(summary = "Register FCM token", description = "Register or update FCM token for push notifications", security = @SecurityRequirement(name = "bearerAuth"))
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
-    public ResponseEntity<Map<String, String>> registerToken(
-            @Valid @RequestBody FcmTokenRequest request,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
+    public ResponseEntity<Map<String, String>> registerToken(@Valid @RequestBody FcmTokenRequest request, @AuthenticationPrincipal CustomUserDetails userDetails) {
 
         fcmTokenService.saveOrUpdateToken(userDetails.getUser().getId(), request);
 
-        return ResponseEntity.ok(Map.of(
-                "status", "success",
-                "message", "FCM token registered successfully"
-        ));
+        return ResponseEntity.ok(Map.of("status", "success", "message", "FCM token registered successfully"));
     }
 
     @DeleteMapping("/token")
-    @Operation(
-            summary = "Remove FCM token",
-            description = "Remove FCM token (on logout)",
-            security = @SecurityRequirement(name = "bearerAuth")
-    )
+    @Operation(summary = "Remove FCM token", description = "Remove FCM token (on logout)", security = @SecurityRequirement(name = "bearerAuth"))
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
-    public ResponseEntity<Map<String, String>> removeToken(
-            @RequestParam String token,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
+    public ResponseEntity<Map<String, String>> removeToken(@RequestParam String token, @AuthenticationPrincipal CustomUserDetails userDetails) {
 
         fcmTokenService.removeToken(userDetails.getUser().getId(), token);
 
-        return ResponseEntity.ok(Map.of(
-                "status", "success",
-                "message", "FCM token removed successfully"
-        ));
+        return ResponseEntity.ok(Map.of("status", "success", "message", "FCM token removed successfully"));
     }
 }

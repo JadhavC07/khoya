@@ -14,10 +14,10 @@ import java.util.Map;
 @Slf4j
 public class FacebookService {
 
+    private static final String API_VERSION = "v23.0";
     private final WebClient webClient;
     private final String pageId;
     private final String accessToken;
-    private static final String API_VERSION = "v23.0";
 
     public FacebookService(WebClient webClient) {
         this.webClient = webClient;
@@ -28,18 +28,14 @@ public class FacebookService {
 
     public boolean postAlertToFacebook(MissingAlert alert) {
         if (alert.getImageUrl() == null || alert.getImageUrl().isEmpty()) {
-            log.warn("Skipping Facebook post for alert ID {} as no image URL is present.", alert.getId());
             return false;
         }
-
-        log.info("Attempting to post alert ID {} to Facebook Page.", alert.getId());
 
         String caption = generateCaption(alert);
 
         try {
             return createPhotoPost(alert.getImageUrl(), caption);
         } catch (Exception e) {
-            log.error("A critical error occurred during Facebook posting for alert ID: {}. Error: {}", alert.getId(), e.getMessage(), e);
             return false;
         }
     }
@@ -47,47 +43,20 @@ public class FacebookService {
     private boolean createPhotoPost(String imageUrl, String caption) {
         String postUrl = String.format("https://graph.facebook.com/%s/%s/photos", API_VERSION, pageId);
 
-        BodyInserters.FormInserter<String> body = BodyInserters.fromFormData("url", imageUrl)
-                .with("message", caption)
-                .with("access_token", accessToken);
-
-        log.debug("Sending request to post photo to Facebook at: {}", postUrl);
-
+        BodyInserters.FormInserter<String> body = BodyInserters.fromFormData("url", imageUrl).with("message", caption).with("access_token", accessToken);
         try {
-            Map response = webClient.post()
-                    .uri(postUrl)
-                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                    .body(body)
-                    .retrieve()
-                    .bodyToMono(Map.class)
-                    .block();
+            Map response = webClient.post().uri(postUrl).contentType(MediaType.APPLICATION_FORM_URLENCODED).body(body).retrieve().bodyToMono(Map.class).block();
 
-            if (response != null && response.containsKey("id")) {
-                log.info("Successfully posted to Facebook. Post ID: {}", response.get("id"));
-                return true;
-            } else {
-                log.error("Facebook Post API call failed or response was missing 'id'. Response: {}", response);
-                return false;
-            }
+            return response != null && response.containsKey("id");
         } catch (Exception e) {
-            log.error("Error posting to Facebook: {}", e.getMessage());
             return false;
         }
     }
 
     private String generateCaption(MissingAlert alert) {
-        StringBuilder caption = new StringBuilder();
-        caption.append("🚨 URGENT MISSING PERSON ALERT 🚨\n\n");
-        caption.append("We urgently need your help to find: ").append(alert.getTitle()).append("\n\n");
-        caption.append("👤 Reported Missing: ").append(alert.getTitle()).append("\n");
-        caption.append("📍 Last Seen Location: ").append(alert.getLocation()).append("\n\n");
 
-        caption.append("Please read the details:\n").append(alert.getDescription()).append("\n\n");
+        String caption = "🚨 URGENT MISSING PERSON ALERT 🚨\n\n" + "We urgently need your help to find: " + alert.getTitle() + "\n\n" + "👤 Reported Missing: " + alert.getTitle() + "\n" + "📍 Last Seen Location: " + alert.getLocation() + "\n\n" + "Please read the details:\n" + alert.getDescription() + "\n\n" + "If you have *any* information, please contact the authorities or use the in-app reporting feature immediately.\n" + "Every share helps! Thank you.\n\n" + "#MissingPerson #Missing #HelpFind #" + alert.getLocation().replaceAll("[^a-zA-Z0-9]", "") + " #" + alert.getTitle().replaceAll("[^a-zA-Z0-9]", "") + " #KhoyaApp";
 
-        caption.append("If you have *any* information, please contact the authorities or use the in-app reporting feature immediately.\n");
-        caption.append("Every share helps! Thank you.\n\n");
-        caption.append("#MissingPerson #Missing #HelpFind #").append(alert.getLocation().replaceAll("[^a-zA-Z0-9]", "")).append(" #").append(alert.getTitle().replaceAll("[^a-zA-Z0-9]", "")).append(" #KhoyaApp");
-
-        return caption.toString();
+        return caption;
     }
 }

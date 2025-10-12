@@ -31,11 +31,8 @@ public class InstagramService {
     public boolean postAlertToInstagram(MissingAlert alert) {
 
         if (alert.getImageUrl() == null || alert.getImageUrl().isEmpty()) {
-            log.warn("Skipping Instagram post for alert ID {} as no image URL is present.", alert.getId());
             return false;
         }
-
-        log.info("Attempting to post alert ID {} to Instagram.", alert.getId());
 
         String caption = generateCaption(alert);
 
@@ -44,7 +41,6 @@ public class InstagramService {
             String containerId = createMediaContainer(alert.getImageUrl(), caption);
 
             if (containerId == null) {
-                log.error("Failed to create Instagram media container for alert ID: {}", alert.getId());
                 return false;
             }
 
@@ -52,7 +48,6 @@ public class InstagramService {
             return publishMediaContainer(containerId);
 
         } catch (Exception e) {
-            log.error("A critical error occurred during Instagram posting for alert ID: {}. Error: {}", alert.getId(), e.getMessage(), e);
             return false;
         }
     }
@@ -64,22 +59,13 @@ public class InstagramService {
         String containerUrl = String.format("https://graph.instagram.com/%s/%s/media", containerApiVersion, igUserId);
 
 
-        BodyInserters.FormInserter<String> body = BodyInserters.fromFormData("image_url", imageUrl)
-                .with("caption", caption)
-                .with("media_type", "IMAGE")
-                .with("access_token", accessToken);
+        BodyInserters.FormInserter<String> body = BodyInserters.fromFormData("image_url", imageUrl).with("caption", caption).with("media_type", "IMAGE").with("access_token", accessToken);
 
         log.debug("Sending request to create Instagram container at: {}", containerUrl);
 
         try {
 
-            Map response = webClient.post()
-                    .uri(containerUrl)
-                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                    .body(body)
-                    .retrieve()
-                    .bodyToMono(Map.class)
-                    .block();
+            Map response = webClient.post().uri(containerUrl).contentType(MediaType.APPLICATION_FORM_URLENCODED).body(body).retrieve().bodyToMono(Map.class).block();
 
             if (response != null && response.containsKey("id")) {
                 String containerId = String.valueOf(response.get("id"));
@@ -102,28 +88,13 @@ public class InstagramService {
         String publishUrl = String.format("https://graph.instagram.com/%s/%s/media_publish", publishApiVersion, igUserId);
 
 
-        BodyInserters.FormInserter<String> body = BodyInserters.fromFormData("creation_id", containerId)
-                .with("access_token", accessToken);
-
-        log.debug("Sending request to publish Instagram container ID: {}", containerId);
+        BodyInserters.FormInserter<String> body = BodyInserters.fromFormData("creation_id", containerId).with("access_token", accessToken);
 
         try {
             // Send POST request
-            Map response = webClient.post()
-                    .uri(publishUrl)
-                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                    .body(body)
-                    .retrieve()
-                    .bodyToMono(Map.class)
-                    .block(); // Blocking call
+            Map response = webClient.post().uri(publishUrl).contentType(MediaType.APPLICATION_FORM_URLENCODED).body(body).retrieve().bodyToMono(Map.class).block(); // Blocking call
 
-            if (response != null && response.containsKey("id")) {
-                log.info("Successfully published Instagram post. Post ID: {}", response.get("id"));
-                return true;
-            } else {
-                log.error("Instagram Publish API call failed or response was missing 'id'. Response: {}", response);
-                return false;
-            }
+            return response != null && response.containsKey("id");
         } catch (Exception e) {
 
             return false;
@@ -133,18 +104,8 @@ public class InstagramService {
 
     private String generateCaption(MissingAlert alert) {
 
-        StringBuilder caption = new StringBuilder();
-        caption.append("🚨 URGENT MISSING PERSON ALERT 🚨\n\n");
-        caption.append("We urgently need your help to find: ").append(alert.getTitle()).append("\n\n");
-        caption.append("👤 Reported Missing: ").append(alert.getTitle()).append("\n");
-        caption.append("📍 Last Seen Location: ").append(alert.getLocation()).append("\n\n");
+        String caption = "🚨 URGENT MISSING PERSON ALERT 🚨\n\n" + "We urgently need your help to find: " + alert.getTitle() + "\n\n" + "👤 Reported Missing: " + alert.getTitle() + "\n" + "📍 Last Seen Location: " + alert.getLocation() + "\n\n" + "Please read the details:\n" + alert.getDescription() + "\n\n" + "If you have *any* information, please contact the authorities or use the in-app reporting feature immediately.\n" + "Every share helps! Thank you.\n\n" + "#MissingPerson #Missing #HelpFind #" + alert.getLocation().replaceAll("[^a-zA-Z0-9]", "") + " #" + alert.getTitle().replaceAll("[^a-zA-Z0-9]", "") + " #KhoyaApp";
 
-        caption.append("Please read the details:\n").append(alert.getDescription()).append("\n\n");
-
-        caption.append("If you have *any* information, please contact the authorities or use the in-app reporting feature immediately.\n");
-        caption.append("Every share helps! Thank you.\n\n");
-        caption.append("#MissingPerson #Missing #HelpFind #").append(alert.getLocation().replaceAll("[^a-zA-Z0-9]", "")).append(" #").append(alert.getTitle().replaceAll("[^a-zA-Z0-9]", "")).append(" #KhoyaApp");
-
-        return caption.toString();
+        return caption;
     }
 }

@@ -60,32 +60,16 @@ public class AuthService {
         // Create refresh token
         String deviceInfo = refreshTokenService.getDeviceInfo(httpRequest);
         String ipAddress = refreshTokenService.getClientIP(httpRequest);
-        RefreshToken refreshToken = refreshTokenService.createRefreshToken(
-                savedUser.getId(), deviceInfo, ipAddress
-        );
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(savedUser.getId(), deviceInfo, ipAddress);
 
-        return AuthResponse.builder()
-                .status("success")
-                .message("User registered successfully")
-                .accessToken(accessToken)
-                .refreshToken(refreshToken.getToken())
-                .tokenType("Bearer")
-                .userId(savedUser.getId())
-                .name(savedUser.getName())
-                .email(savedUser.getEmail())
-                .role(savedUser.getRole())
-                .accessTokenExpiresAt(System.currentTimeMillis() + jwtUtil.getAccessTokenExpiration())
-                .refreshTokenExpiresAt(System.currentTimeMillis() + jwtUtil.getRefreshTokenExpiration())
-                .build();
+        return AuthResponse.builder().status("success").message("User registered successfully").accessToken(accessToken).refreshToken(refreshToken.getToken()).tokenType("Bearer").userId(savedUser.getId()).name(savedUser.getName()).email(savedUser.getEmail()).role(savedUser.getRole()).accessTokenExpiresAt(System.currentTimeMillis() + jwtUtil.getAccessTokenExpiration()).refreshTokenExpiresAt(System.currentTimeMillis() + jwtUtil.getRefreshTokenExpiration()).build();
     }
 
     @Transactional
     public AuthResponse login(LoginRequest request, HttpServletRequest httpRequest) {
         try {
             // Authenticate user
-            Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
-            );
+            Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
 
             CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
             User user = userDetails.getUser();
@@ -96,25 +80,11 @@ public class AuthService {
             // Create refresh token
             String deviceInfo = refreshTokenService.getDeviceInfo(httpRequest);
             String ipAddress = refreshTokenService.getClientIP(httpRequest);
-            RefreshToken refreshToken = refreshTokenService.createRefreshToken(
-                    user.getId(), deviceInfo, ipAddress
-            );
+            RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId(), deviceInfo, ipAddress);
 
             log.info("User logged in: {} from IP: {}", user.getEmail(), ipAddress);
 
-            return AuthResponse.builder()
-                    .status("success")
-                    .message("Login successful")
-                    .accessToken(accessToken)
-                    .refreshToken(refreshToken.getToken())
-                    .tokenType("Bearer")
-                    .userId(user.getId())
-                    .name(user.getName())
-                    .email(user.getEmail())
-                    .role(user.getRole())
-                    .accessTokenExpiresAt(System.currentTimeMillis() + jwtUtil.getAccessTokenExpiration())
-                    .refreshTokenExpiresAt(System.currentTimeMillis() + jwtUtil.getRefreshTokenExpiration())
-                    .build();
+            return AuthResponse.builder().status("success").message("Login successful").accessToken(accessToken).refreshToken(refreshToken.getToken()).tokenType("Bearer").userId(user.getId()).name(user.getName()).email(user.getEmail()).role(user.getRole()).accessTokenExpiresAt(System.currentTimeMillis() + jwtUtil.getAccessTokenExpiration()).refreshTokenExpiresAt(System.currentTimeMillis() + jwtUtil.getRefreshTokenExpiration()).build();
 
         } catch (BadCredentialsException e) {
             throw new BadCredentialsException("Invalid email or password");
@@ -135,19 +105,7 @@ public class AuthService {
 
         log.info("Access token refreshed for user: {}", user.getEmail());
 
-        return AuthResponse.builder()
-                .status("success")
-                .message("Token refreshed successfully")
-                .accessToken(newAccessToken)
-                .refreshToken(requestRefreshToken)
-                .tokenType("Bearer")
-                .userId(user.getId())
-                .name(user.getName())
-                .email(user.getEmail())
-                .role(user.getRole())
-                .accessTokenExpiresAt(System.currentTimeMillis() + jwtUtil.getAccessTokenExpiration())
-                .refreshTokenExpiresAt(System.currentTimeMillis() + jwtUtil.getRefreshTokenExpiration())
-                .build();
+        return AuthResponse.builder().status("success").message("Token refreshed successfully").accessToken(newAccessToken).refreshToken(requestRefreshToken).tokenType("Bearer").userId(user.getId()).name(user.getName()).email(user.getEmail()).role(user.getRole()).accessTokenExpiresAt(System.currentTimeMillis() + jwtUtil.getAccessTokenExpiration()).refreshTokenExpiresAt(System.currentTimeMillis() + jwtUtil.getRefreshTokenExpiration()).build();
     }
 
     @Transactional
