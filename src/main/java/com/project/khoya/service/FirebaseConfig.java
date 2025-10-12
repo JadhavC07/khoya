@@ -27,10 +27,7 @@ public class FirebaseConfig {
             } else {
                 serviceAccount = new ClassPathResource("firebase-service-account.json").getInputStream();
             }
-            FirebaseOptions options = FirebaseOptions.builder()
-                    .setCredentials(GoogleCredentials.fromStream(serviceAccount)
-                            .createScoped("https://www.googleapis.com/auth/firebase.messaging"))
-                    .build();
+            FirebaseOptions options = FirebaseOptions.builder().setCredentials(GoogleCredentials.fromStream(serviceAccount).createScoped("https://www.googleapis.com/auth/firebase.messaging")).build();
             if (FirebaseApp.getApps().isEmpty()) {
                 FirebaseApp.initializeApp(options);
             }
@@ -42,10 +39,7 @@ public class FirebaseConfig {
 
     private void tryAlternativeInitialization() {
         try {
-            FirebaseOptions options = FirebaseOptions.builder()
-                    .setCredentials(GoogleCredentials.getApplicationDefault()
-                            .createScoped("https://www.googleapis.com/auth/firebase.messaging"))
-                    .build();
+            FirebaseOptions options = FirebaseOptions.builder().setCredentials(GoogleCredentials.getApplicationDefault().createScoped("https://www.googleapis.com/auth/firebase.messaging")).build();
             if (FirebaseApp.getApps().isEmpty()) {
                 FirebaseApp.initializeApp(options);
             }

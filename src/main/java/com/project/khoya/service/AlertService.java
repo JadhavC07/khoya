@@ -406,15 +406,11 @@ public class AlertService {
     /**
      * Create a new missing person alert with image and feature extraction.
      */
-    @Caching(evict = {
-            @CacheEvict(value = "alerts", allEntries = true),
-            @CacheEvict(value = "userAlerts", key = "#userId")
-    })
+    @Caching(evict = {@CacheEvict(value = "alerts", allEntries = true), @CacheEvict(value = "userAlerts", key = "#userId")})
     public SimpleAlertResponse createAlert(CreateAlertRequest request, MultipartFile imageFile, Long userId) throws IOException {
         log.info("Creating alert for user: {}", userId);
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
 
         MissingAlert alert = new MissingAlert();
         alert.setTitle(request.getTitle());
@@ -436,8 +432,7 @@ public class AlertService {
                 byte[] embedding = featureExtractionService.extractFeaturesAsBytes(image);
                 alert.setImageEmbedding(embedding);
 
-                log.info("Feature vector extracted (size: {} bytes, dimension: {})",
-                        embedding.length, featureExtractionService.getFeatureDimension());
+                log.info("Feature vector extracted (size: {} bytes, dimension: {})", embedding.length, featureExtractionService.getFeatureDimension());
 
             } catch (IOException e) {
                 log.error("Failed to upload image to Cloudinary", e);
@@ -452,32 +447,22 @@ public class AlertService {
         log.info("Alert created with ID: {}", savedAlert.getId());
 
         // Send async messages for social media posting and notifications
-        AlertMessage alertMessage = AlertMessage.builder()
-                .alertId(savedAlert.getId())
-                .title(savedAlert.getTitle())
-                .description(savedAlert.getDescription())
-                .location(savedAlert.getLocation())
-                .imageUrl(savedAlert.getImageUrl())
-                .build();
+        AlertMessage alertMessage = AlertMessage.builder().alertId(savedAlert.getId()).title(savedAlert.getTitle()).description(savedAlert.getDescription()).location(savedAlert.getLocation()).imageUrl(savedAlert.getImageUrl()).build();
 
         if (savedAlert.getImageUrl() != null) {
             messageProducer.sendSocialMediaMessage(alertMessage);
         }
         messageProducer.sendNotificationMessage(alertMessage);
 
-        return SimpleAlertResponse.builder()
-                .status("success")
-                .message("Alert created successfully and will be posted to social media shortly")
-                .alertId(savedAlert.getId())
-                .build();
+        return SimpleAlertResponse.builder().status("success").message("Alert created successfully and will be posted to social media shortly").alertId(savedAlert.getId()).build();
     }
 
     /**
      * Find visually similar alerts using image feature vectors.
      * Uses cosine similarity to rank alerts by visual similarity.
      *
-     * @param newImageFile Image to search for
-     * @param topK Number of top similar alerts to return
+     * @param newImageFile        Image to search for
+     * @param topK                Number of top similar alerts to return
      * @param similarityThreshold Minimum similarity score (0.0 to 1.0)
      * @return List of similar alerts with similarity scores
      */
@@ -532,11 +517,7 @@ public class AlertService {
 //
 //        return topResults;
 //    }
-
-    public List<SimilarAlertResponse> findSimilarAlerts(
-            MultipartFile newImageFile,
-            int topK,
-            double similarityThreshold) throws Exception {
+    public List<SimilarAlertResponse> findSimilarAlerts(MultipartFile newImageFile, int topK, double similarityThreshold) throws Exception {
 
         log.info("Searching for similar alerts (topK: {}, threshold: {})", topK, similarityThreshold);
 
@@ -551,30 +532,25 @@ public class AlertService {
         List<MissingAlert> allAlerts = alertRepository.findByStatus(AlertStatus.ACTIVE);
 
         // Filter alerts that have the CORRECT dimension (2048)
-        List<MissingAlert> alertsWithCorrectDimension = allAlerts.stream()
-                .filter(alert -> {
-                    if (alert.getImageEmbedding() == null || alert.getImageEmbedding().length == 0) {
-                        return false;
-                    }
+        List<MissingAlert> alertsWithCorrectDimension = allAlerts.stream().filter(alert -> {
+            if (alert.getImageEmbedding() == null || alert.getImageEmbedding().length == 0) {
+                return false;
+            }
 
-                    int alertDimension = alert.getImageEmbedding().length / Float.BYTES;
-                    boolean isCorrect = alertDimension == expectedDimension;
+            int alertDimension = alert.getImageEmbedding().length / Float.BYTES;
+            boolean isCorrect = alertDimension == expectedDimension;
 
-                    if (!isCorrect) {
-                        log.debug("Skipping alert {} - wrong dimension: {} (expected {})",
-                                alert.getId(), alertDimension, expectedDimension);
-                    }
+            if (!isCorrect) {
+                log.debug("Skipping alert {} - wrong dimension: {} (expected {})", alert.getId(), alertDimension, expectedDimension);
+            }
 
-                    return isCorrect;
-                })
-                .toList();
+            return isCorrect;
+        }).toList();
 
-        log.info("Comparing against {} alerts with correct dimension ({})",
-                alertsWithCorrectDimension.size(), expectedDimension);
+        log.info("Comparing against {} alerts with correct dimension ({})", alertsWithCorrectDimension.size(), expectedDimension);
 
         if (alertsWithCorrectDimension.isEmpty()) {
-            log.warn("No alerts found with {}-dimensional embeddings. Create new alerts to test similarity search.",
-                    expectedDimension);
+            log.warn("No alerts found with {}-dimensional embeddings. Create new alerts to test similarity search.", expectedDimension);
         }
 
         // Calculate similarities
@@ -586,10 +562,7 @@ public class AlertService {
                 double similarity = featureExtractionService.calculateCosineSimilarity(queryEmbedding, alertEmbedding);
 
                 if (similarity >= similarityThreshold) {
-                    SimilarAlertResponse response = SimilarAlertResponse.builder()
-                            .alert(mapToAlertResponse(alert))
-                            .similarityScore(similarity)
-                            .build();
+                    SimilarAlertResponse response = SimilarAlertResponse.builder().alert(mapToAlertResponse(alert)).similarityScore(similarity).build();
                     similarAlerts.add(response);
                 }
             } catch (Exception e) {
@@ -599,12 +572,9 @@ public class AlertService {
 
         // Sort by similarity (descending) and take top K
         similarAlerts.sort((a, b) -> Double.compare(b.getSimilarityScore(), a.getSimilarityScore()));
-        List<SimilarAlertResponse> topResults = similarAlerts.stream()
-                .limit(topK)
-                .collect(Collectors.toList());
+        List<SimilarAlertResponse> topResults = similarAlerts.stream().limit(topK).collect(Collectors.toList());
 
-        log.info("Found {} similar alerts (filtered from {} total matches)",
-                topResults.size(), similarAlerts.size());
+        log.info("Found {} similar alerts (filtered from {} total matches)", topResults.size(), similarAlerts.size());
 
         return topResults;
     }
@@ -637,41 +607,23 @@ public class AlertService {
             }
         }
 
-        List<AlertResponse> alertResponses = alertPage.getContent().stream()
-                .map(this::mapToAlertResponse)
-                .collect(Collectors.toList());
+        List<AlertResponse> alertResponses = alertPage.getContent().stream().map(this::mapToAlertResponse).collect(Collectors.toList());
 
-        return AlertListResponse.builder()
-                .alerts(alertResponses)
-                .page(alertPage.getNumber())
-                .size(alertPage.getSize())
-                .totalElements(alertPage.getTotalElements())
-                .totalPages(alertPage.getTotalPages())
-                .isFirst(alertPage.isFirst())
-                .isLast(alertPage.isLast())
-                .build();
+        return AlertListResponse.builder().alerts(alertResponses).page(alertPage.getNumber()).size(alertPage.getSize()).totalElements(alertPage.getTotalElements()).totalPages(alertPage.getTotalPages()).isFirst(alertPage.isFirst()).isLast(alertPage.isLast()).build();
     }
 
     @Cacheable(value = "alertById", key = "#id")
     public AlertResponse getAlertById(Long id) {
         log.info("Fetching alert by ID: {}", id);
-        MissingAlert alert = alertRepository.findById(id)
-                .orElseThrow(() -> new AlertNotFoundException("Alert not found with id: " + id));
+        MissingAlert alert = alertRepository.findById(id).orElseThrow(() -> new AlertNotFoundException("Alert not found with id: " + id));
         return mapToAlertResponse(alert);
     }
 
-    @Caching(
-            put = @CachePut(value = "alertById", key = "#id"),
-            evict = {
-                    @CacheEvict(value = "alerts", allEntries = true),
-                    @CacheEvict(value = "userAlerts", key = "#userId")
-            }
-    )
+    @Caching(put = @CachePut(value = "alertById", key = "#id"), evict = {@CacheEvict(value = "alerts", allEntries = true), @CacheEvict(value = "userAlerts", key = "#userId")})
     public AlertResponse updateAlert(Long id, UpdateAlertRequest request, MultipartFile imageFile, Long userId) throws IOException {
         log.info("Updating alert: {} by user: {}", id, userId);
 
-        MissingAlert alert = alertRepository.findById(id)
-                .orElseThrow(() -> new AlertNotFoundException("Alert not found with id: " + id));
+        MissingAlert alert = alertRepository.findById(id).orElseThrow(() -> new AlertNotFoundException("Alert not found with id: " + id));
 
         if (!alert.getPostedBy().getId().equals(userId)) {
             throw new UnauthorizedOperationException("You can only update your own alerts");
@@ -719,18 +671,11 @@ public class AlertService {
         return mapToAlertResponse(updatedAlert);
     }
 
-    @Caching(
-            put = @CachePut(value = "alertById", key = "#id"),
-            evict = {
-                    @CacheEvict(value = "alerts", allEntries = true),
-                    @CacheEvict(value = "userAlerts", key = "#userId")
-            }
-    )
+    @Caching(put = @CachePut(value = "alertById", key = "#id"), evict = {@CacheEvict(value = "alerts", allEntries = true), @CacheEvict(value = "userAlerts", key = "#userId")})
     public AlertResponse markAsFound(Long id, FoundRequest request, Long userId) {
         log.info("Marking alert as found: {} by user: {}", id, userId);
 
-        MissingAlert alert = alertRepository.findById(id)
-                .orElseThrow(() -> new AlertNotFoundException("Alert not found with id: " + id));
+        MissingAlert alert = alertRepository.findById(id).orElseThrow(() -> new AlertNotFoundException("Alert not found with id: " + id));
 
         if (!alert.getPostedBy().getId().equals(userId)) {
             throw new UnauthorizedOperationException("You can only mark your own alerts as found");
@@ -747,30 +692,18 @@ public class AlertService {
         MissingAlert updatedAlert = alertRepository.save(alert);
 
         // Send notification
-        Map<String, String> data = Map.of(
-                "alertId", updatedAlert.getId().toString(),
-                "type", "PERSON_FOUND"
-        );
+        Map<String, String> data = Map.of("alertId", updatedAlert.getId().toString(), "type", "PERSON_FOUND");
 
-        firebaseMessagingService.sendPushNotificationToAllUsers(
-                "✅ Good News! Person Found",
-                updatedAlert.getTitle() + " has been found safely.",
-                data
-        );
+        firebaseMessagingService.sendPushNotificationToAllUsers("✅ Good News! Person Found", updatedAlert.getTitle() + " has been found safely.", data);
 
         return mapToAlertResponse(updatedAlert);
     }
 
-    @Caching(evict = {
-            @CacheEvict(value = "alertById", key = "#id"),
-            @CacheEvict(value = "alerts", allEntries = true),
-            @CacheEvict(value = "userAlerts", key = "#userId")
-    })
+    @Caching(evict = {@CacheEvict(value = "alertById", key = "#id"), @CacheEvict(value = "alerts", allEntries = true), @CacheEvict(value = "userAlerts", key = "#userId")})
     public void deleteAlert(Long id, Long userId, boolean isAdmin) {
         log.info("Deleting alert: {} by user: {}, isAdmin: {}", id, userId, isAdmin);
 
-        MissingAlert alert = alertRepository.findById(id)
-                .orElseThrow(() -> new AlertNotFoundException("Alert not found with id: " + id));
+        MissingAlert alert = alertRepository.findById(id).orElseThrow(() -> new AlertNotFoundException("Alert not found with id: " + id));
 
         if (!isAdmin && !alert.getPostedBy().getId().equals(userId)) {
             throw new UnauthorizedOperationException("You can only delete your own alerts");
@@ -788,40 +721,18 @@ public class AlertService {
     public List<AlertResponse> getUserAlerts(Long userId) {
         log.info("Fetching user alerts for user: {}", userId);
         List<MissingAlert> alerts = alertRepository.findByPostedByIdOrderByCreatedAtDesc(userId);
-        return alerts.stream()
-                .map(this::mapToAlertResponse)
-                .collect(Collectors.toList());
+        return alerts.stream().map(this::mapToAlertResponse).collect(Collectors.toList());
     }
 
-    @Caching(evict = {
-            @CacheEvict(value = "alertById", key = "#id"),
-            @CacheEvict(value = "alerts", allEntries = true)
-    })
+    @Caching(evict = {@CacheEvict(value = "alertById", key = "#id"), @CacheEvict(value = "alerts", allEntries = true)})
     public void incrementReportCount(Long id) {
         log.info("Incrementing report count for alert: {}", id);
-        MissingAlert alert = alertRepository.findById(id)
-                .orElseThrow(() -> new AlertNotFoundException("Alert not found with id: " + id));
+        MissingAlert alert = alertRepository.findById(id).orElseThrow(() -> new AlertNotFoundException("Alert not found with id: " + id));
         alert.setReportCount(alert.getReportCount() + 1);
         alertRepository.save(alert);
     }
 
     private AlertResponse mapToAlertResponse(MissingAlert alert) {
-        return AlertResponse.builder()
-                .id(alert.getId())
-                .title(alert.getTitle())
-                .description(alert.getDescription())
-                .location(alert.getLocation())
-                .imageUrl(alert.getImageUrl())
-                .status(alert.getStatus())
-                .reportCount(alert.getReportCount())
-                .createdAt(alert.getCreatedAt())
-                .updatedAt(alert.getUpdatedAt())
-                .foundAt(alert.getFoundAt())
-                .postedBy(AlertResponse.UserInfo.builder()
-                        .id(alert.getPostedBy().getId())
-                        .name(alert.getPostedBy().getName())
-                        .email(alert.getPostedBy().getEmail())
-                        .build())
-                .build();
+        return AlertResponse.builder().id(alert.getId()).title(alert.getTitle()).description(alert.getDescription()).location(alert.getLocation()).imageUrl(alert.getImageUrl()).status(alert.getStatus()).reportCount(alert.getReportCount()).createdAt(alert.getCreatedAt()).updatedAt(alert.getUpdatedAt()).foundAt(alert.getFoundAt()).postedBy(AlertResponse.UserInfo.builder().id(alert.getPostedBy().getId()).name(alert.getPostedBy().getName()).email(alert.getPostedBy().getEmail()).build()).build();
     }
 }

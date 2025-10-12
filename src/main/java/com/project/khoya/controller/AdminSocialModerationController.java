@@ -27,11 +27,7 @@ public class AdminSocialModerationController {
     private final VoteRepository voteRepository;
 
     @GetMapping("/stats")
-    @Operation(
-            summary = "Get social interaction statistics",
-            description = "Get comprehensive statistics about comments and votes",
-            security = @SecurityRequirement(name = "bearerAuth")
-    )
+    @Operation(summary = "Get social interaction statistics", description = "Get comprehensive statistics about comments and votes", security = @SecurityRequirement(name = "bearerAuth"))
     public ResponseEntity<Map<String, Object>> getSocialStats() {
         Map<String, Object> stats = new HashMap<>();
 
@@ -55,23 +51,14 @@ public class AdminSocialModerationController {
     }
 
     @PutMapping("/comments/{commentId}/status")
-    @Operation(
-            summary = "Update comment status",
-            description = "Update the status of a comment (hide, flag, etc.)",
-            security = @SecurityRequirement(name = "bearerAuth")
-    )
-    public ResponseEntity<Map<String, String>> updateCommentStatus(
-            @Parameter(description = "Comment ID", required = true)
-            @PathVariable Long commentId,
+    @Operation(summary = "Update comment status", description = "Update the status of a comment (hide, flag, etc.)", security = @SecurityRequirement(name = "bearerAuth"))
+    public ResponseEntity<Map<String, String>> updateCommentStatus(@Parameter(description = "Comment ID", required = true) @PathVariable Long commentId,
 
-            @Parameter(description = "New comment status", required = true)
-            @RequestParam CommentStatus status,
+                                                                   @Parameter(description = "New comment status", required = true) @RequestParam CommentStatus status,
 
-            @Parameter(description = "Admin notes")
-            @RequestParam(required = false) String notes) {
+                                                                   @Parameter(description = "Admin notes") @RequestParam(required = false) String notes) {
 
-        var comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new RuntimeException("Comment not found"));
+        var comment = commentRepository.findById(commentId).orElseThrow(() -> new RuntimeException("Comment not found"));
 
         comment.setStatus(status);
         commentRepository.save(comment);
@@ -84,35 +71,12 @@ public class AdminSocialModerationController {
     }
 
     @GetMapping("/comments/flagged")
-    @Operation(
-            summary = "Get flagged comments",
-            description = "Get comments that need moderation attention",
-            security = @SecurityRequirement(name = "bearerAuth")
-    )
-    public ResponseEntity<Map<String, Object>> getFlaggedComments(
-            @Parameter(description = "Minimum downvote threshold")
-            @RequestParam(defaultValue = "5") int downvoteThreshold) {
+    @Operation(summary = "Get flagged comments", description = "Get comments that need moderation attention", security = @SecurityRequirement(name = "bearerAuth"))
+    public ResponseEntity<Map<String, Object>> getFlaggedComments(@Parameter(description = "Minimum downvote threshold") @RequestParam(defaultValue = "5") int downvoteThreshold) {
 
         var flaggedComments = commentRepository.findCommentsNeedingModeration(downvoteThreshold);
 
-        var commentData = flaggedComments.stream()
-                .map(comment -> Map.of(
-                        "id", comment.getId(),
-                        "content", comment.getContent(),
-                        "alertId", comment.getAlert().getId(),
-                        "alertTitle", comment.getAlert().getTitle(),
-                        "score", comment.getScore(),
-                        "upvotes", comment.getUpvotes(),
-                        "downvotes", comment.getDownvotes(),
-                        "status", comment.getStatus(),
-                        "createdAt", comment.getCreatedAt(),
-                        "author", Map.of(
-                                "id", comment.getAuthor().getId(),
-                                "name", comment.getAuthor().getName(),
-                                "email", comment.getAuthor().getEmail()
-                        )
-                ))
-                .toList();
+        var commentData = flaggedComments.stream().map(comment -> Map.of("id", comment.getId(), "content", comment.getContent(), "alertId", comment.getAlert().getId(), "alertTitle", comment.getAlert().getTitle(), "score", comment.getScore(), "upvotes", comment.getUpvotes(), "downvotes", comment.getDownvotes(), "status", comment.getStatus(), "createdAt", comment.getCreatedAt(), "author", Map.of("id", comment.getAuthor().getId(), "name", comment.getAuthor().getName(), "email", comment.getAuthor().getEmail()))).toList();
 
         Map<String, Object> response = new HashMap<>();
         response.put("comments", commentData);

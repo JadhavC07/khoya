@@ -45,9 +45,7 @@ public class RedisConfig {
         config.setPort(redisPort);
         config.setPassword(RedisPassword.of(redisPassword));
 
-        LettuceClientConfiguration clientConfig = LettuceClientConfiguration.builder()
-                .commandTimeout(Duration.ofMillis(redisTimeout))
-                .build();
+        LettuceClientConfiguration clientConfig = LettuceClientConfiguration.builder().commandTimeout(Duration.ofMillis(redisTimeout)).build();
 
         return new LettuceConnectionFactory(config, clientConfig);
     }
@@ -82,24 +80,8 @@ public class RedisConfig {
 
         Jackson2JsonRedisSerializer<Object> serializer = new Jackson2JsonRedisSerializer<>(objectMapper, Object.class);
 
-        RedisCacheConfiguration cacheConfig = RedisCacheConfiguration.defaultCacheConfig()
-                .entryTtl(Duration.ofHours(1))
-                .serializeKeysWith(
-                        RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer())
-                )
-                .serializeValuesWith(
-                        RedisSerializationContext.SerializationPair.fromSerializer(serializer)
-                )
-                .disableCachingNullValues();
+        RedisCacheConfiguration cacheConfig = RedisCacheConfiguration.defaultCacheConfig().entryTtl(Duration.ofHours(1)).serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer())).serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(serializer)).disableCachingNullValues();
 
-        return RedisCacheManager.builder(connectionFactory)
-                .cacheDefaults(cacheConfig)
-                .withCacheConfiguration("alerts",
-                        cacheConfig.entryTtl(Duration.ofMinutes(30)))
-                .withCacheConfiguration("alertById",
-                        cacheConfig.entryTtl(Duration.ofMinutes(15)))
-                .withCacheConfiguration("userAlerts",
-                        cacheConfig.entryTtl(Duration.ofMinutes(10)))
-                .build();
+        return RedisCacheManager.builder(connectionFactory).cacheDefaults(cacheConfig).withCacheConfiguration("alerts", cacheConfig.entryTtl(Duration.ofMinutes(30))).withCacheConfiguration("alertById", cacheConfig.entryTtl(Duration.ofMinutes(15))).withCacheConfiguration("userAlerts", cacheConfig.entryTtl(Duration.ofMinutes(10))).build();
     }
 }

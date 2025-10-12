@@ -33,11 +33,7 @@ public class AdminModerationController {
     private final MissingAlertRepository alertRepository;
 
     @GetMapping("/stats")
-    @Operation(
-            summary = "Get moderation statistics",
-            description = "Get comprehensive moderation statistics",
-            security = @SecurityRequirement(name = "bearerAuth")
-    )
+    @Operation(summary = "Get moderation statistics", description = "Get comprehensive moderation statistics", security = @SecurityRequirement(name = "bearerAuth"))
     public ResponseEntity<Map<String, Object>> getModerationStats() {
         Map<String, Object> stats = new HashMap<>();
 
@@ -63,60 +59,27 @@ public class AdminModerationController {
     }
 
     @PutMapping("/reports/{reportId}/review")
-    @Operation(
-            summary = "Review a report",
-            description = "Review a report and set its status",
-            security = @SecurityRequirement(name = "bearerAuth")
-    )
-    public ResponseEntity<ReportResponse> reviewReport(
-            @Parameter(description = "Report ID", required = true)
-            @PathVariable Long reportId,
+    @Operation(summary = "Review a report", description = "Review a report and set its status", security = @SecurityRequirement(name = "bearerAuth"))
+    public ResponseEntity<ReportResponse> reviewReport(@Parameter(description = "Report ID", required = true) @PathVariable Long reportId,
 
-            @Parameter(description = "Report status decision", required = true)
-            @RequestParam ReportStatus status,
+                                                       @Parameter(description = "Report status decision", required = true) @RequestParam ReportStatus status,
 
-            @Parameter(description = "Admin notes")
-            @RequestParam(required = false) @Size(max = 1000) String adminNotes,
+                                                       @Parameter(description = "Admin notes") @RequestParam(required = false) @Size(max = 1000) String adminNotes,
 
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
+                                                       @AuthenticationPrincipal CustomUserDetails userDetails) {
 
-        ReportResponse response = reportingService.reviewReport(
-                reportId, status, adminNotes, userDetails.getUser().getId());
+        ReportResponse response = reportingService.reviewReport(reportId, status, adminNotes, userDetails.getUser().getId());
 
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/alerts/flagged")
-    @Operation(
-            summary = "Get flagged alerts",
-            description = "Get all flagged alerts for review",
-            security = @SecurityRequirement(name = "bearerAuth")
-    )
-    public ResponseEntity<Map<String, Object>> getFlaggedAlerts(
-            @Parameter(description = "Page number")
-            @RequestParam(defaultValue = "0") int page,
-            @Parameter(description = "Page size")
-            @RequestParam(defaultValue = "20") int size) {
+    @Operation(summary = "Get flagged alerts", description = "Get all flagged alerts for review", security = @SecurityRequirement(name = "bearerAuth"))
+    public ResponseEntity<Map<String, Object>> getFlaggedAlerts(@Parameter(description = "Page number") @RequestParam(defaultValue = "0") int page, @Parameter(description = "Page size") @RequestParam(defaultValue = "20") int size) {
 
-        var flaggedAlerts = alertRepository.findFlaggedAlerts(
-                org.springframework.data.domain.PageRequest.of(page, size));
+        var flaggedAlerts = alertRepository.findFlaggedAlerts(org.springframework.data.domain.PageRequest.of(page, size));
 
-        var alertResponses = flaggedAlerts.getContent().stream()
-                .map(alert -> Map.of(
-                        "id", alert.getId(),
-                        "title", alert.getTitle(),
-                        "reportCount", alert.getReportCount(),
-                        "flaggedAt", alert.getFlaggedAt(),
-                        "flaggedReason", alert.getFlaggedReason() != null ? alert.getFlaggedReason() : "",
-                        "status", alert.getStatus(),
-                        "autoDeleted", alert.isAutoDeleted(),
-                        "postedBy", Map.of(
-                                "id", alert.getPostedBy().getId(),
-                                "name", alert.getPostedBy().getName(),
-                                "email", alert.getPostedBy().getEmail()
-                        )
-                ))
-                .toList();
+        var alertResponses = flaggedAlerts.getContent().stream().map(alert -> Map.of("id", alert.getId(), "title", alert.getTitle(), "reportCount", alert.getReportCount(), "flaggedAt", alert.getFlaggedAt(), "flaggedReason", alert.getFlaggedReason() != null ? alert.getFlaggedReason() : "", "status", alert.getStatus(), "autoDeleted", alert.isAutoDeleted(), "postedBy", Map.of("id", alert.getPostedBy().getId(), "name", alert.getPostedBy().getName(), "email", alert.getPostedBy().getEmail()))).toList();
 
         Map<String, Object> response = new HashMap<>();
         response.put("alerts", alertResponses);
@@ -128,19 +91,10 @@ public class AdminModerationController {
     }
 
     @PutMapping("/alerts/{alertId}/unflag")
-    @Operation(
-            summary = "Unflag an alert",
-            description = "Remove flag from an alert after review",
-            security = @SecurityRequirement(name = "bearerAuth")
-    )
-    public ResponseEntity<Map<String, String>> unflagAlert(
-            @Parameter(description = "Alert ID", required = true)
-            @PathVariable Long alertId,
-            @Parameter(description = "Reason for unflagging")
-            @RequestParam(required = false) String reason) {
+    @Operation(summary = "Unflag an alert", description = "Remove flag from an alert after review", security = @SecurityRequirement(name = "bearerAuth"))
+    public ResponseEntity<Map<String, String>> unflagAlert(@Parameter(description = "Alert ID", required = true) @PathVariable Long alertId, @Parameter(description = "Reason for unflagging") @RequestParam(required = false) String reason) {
 
-        var alert = alertRepository.findById(alertId)
-                .orElseThrow(() -> new RuntimeException("Alert not found"));
+        var alert = alertRepository.findById(alertId).orElseThrow(() -> new RuntimeException("Alert not found"));
 
         alert.setFlagged(false);
         alert.setFlaggedAt(null);

@@ -9,9 +9,7 @@ public class WebhookController {
 
 
     @GetMapping("/webhook")
-    public String verifyWebhook(@RequestParam(value = "hub.mode") String mode,
-                                @RequestParam(value = "hub.challenge") String challenge,
-                                @RequestParam(value = "hub.verify_token") String verifyToken) {
+    public String verifyWebhook(@RequestParam(value = "hub.mode") String mode, @RequestParam(value = "hub.challenge") String challenge, @RequestParam(value = "hub.verify_token") String verifyToken) {
         if ("subscribe".equals(mode) && VERIFY_TOKEN.equals(verifyToken)) {
             return challenge;
         } else {

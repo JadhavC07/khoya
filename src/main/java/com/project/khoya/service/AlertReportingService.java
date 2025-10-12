@@ -43,12 +43,10 @@ public class AlertReportingService {
 
     public ReportResponse reportAlert(Long alertId, ReportAlertRequest request, Long userId) {
         // Get alert
-        MissingAlert alert = alertRepository.findById(alertId)
-                .orElseThrow(() -> new AlertNotFoundException("Alert not found with id: " + alertId));
+        MissingAlert alert = alertRepository.findById(alertId).orElseThrow(() -> new AlertNotFoundException("Alert not found with id: " + alertId));
 
         // Get user
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
 
         // Prevent self-reporting
         if (alert.getPostedBy().getId().equals(userId)) {
@@ -108,35 +106,26 @@ public class AlertReportingService {
 
     public List<ReportResponse> getAlertReports(Long alertId) {
         List<AlertReport> reports = reportRepository.findByAlertIdOrderByCreatedAtDesc(alertId);
-        return reports.stream()
-                .map(this::mapToReportResponse)
-                .collect(Collectors.toList());
+        return reports.stream().map(this::mapToReportResponse).collect(Collectors.toList());
     }
 
     public List<ReportResponse> getUserReports(Long userId) {
         List<AlertReport> reports = reportRepository.findByReportedByIdOrderByCreatedAtDesc(userId);
-        return reports.stream()
-                .map(this::mapToReportResponse)
-                .collect(Collectors.toList());
+        return reports.stream().map(this::mapToReportResponse).collect(Collectors.toList());
     }
 
     public List<ReportResponse> getPendingReports(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<AlertReport> reportPage = reportRepository.findByStatusOrderByCreatedAtDesc(
-                ReportStatus.PENDING, pageable);
+        Page<AlertReport> reportPage = reportRepository.findByStatusOrderByCreatedAtDesc(ReportStatus.PENDING, pageable);
 
-        return reportPage.getContent().stream()
-                .map(this::mapToReportResponse)
-                .collect(Collectors.toList());
+        return reportPage.getContent().stream().map(this::mapToReportResponse).collect(Collectors.toList());
     }
 
     @Transactional
     public ReportResponse reviewReport(Long reportId, ReportStatus status, String adminNotes, Long adminId) {
-        AlertReport report = reportRepository.findById(reportId)
-                .orElseThrow(() -> new RuntimeException("Report not found"));
+        AlertReport report = reportRepository.findById(reportId).orElseThrow(() -> new RuntimeException("Report not found"));
 
-        User admin = userRepository.findById(adminId)
-                .orElseThrow(() -> new RuntimeException("Admin not found"));
+        User admin = userRepository.findById(adminId).orElseThrow(() -> new RuntimeException("Admin not found"));
 
         report.setStatus(status);
         report.setReviewedAt(LocalDateTime.now());
@@ -167,27 +156,6 @@ public class AlertReportingService {
     }
 
     private ReportResponse mapToReportResponse(AlertReport report) {
-        return ReportResponse.builder()
-                .id(report.getId())
-                .alertId(report.getAlert().getId())
-                .alertTitle(report.getAlert().getTitle())
-                .reason(report.getReason())
-                .additionalDetails(report.getAdditionalDetails())
-                .status(report.getStatus())
-                .createdAt(report.getCreatedAt())
-                .reviewedAt(report.getReviewedAt())
-                .adminNotes(report.getAdminNotes())
-                .reportedBy(ReportResponse.UserInfo.builder()
-                        .id(report.getReportedBy().getId())
-                        .name(report.getReportedBy().getName())
-                        .email(report.getReportedBy().getEmail())
-                        .build())
-                .reviewedBy(report.getReviewedBy() != null ?
-                        ReportResponse.UserInfo.builder()
-                                .id(report.getReviewedBy().getId())
-                                .name(report.getReviewedBy().getName())
-                                .email(report.getReviewedBy().getEmail())
-                                .build() : null)
-                .build();
+        return ReportResponse.builder().id(report.getId()).alertId(report.getAlert().getId()).alertTitle(report.getAlert().getTitle()).reason(report.getReason()).additionalDetails(report.getAdditionalDetails()).status(report.getStatus()).createdAt(report.getCreatedAt()).reviewedAt(report.getReviewedAt()).adminNotes(report.getAdminNotes()).reportedBy(ReportResponse.UserInfo.builder().id(report.getReportedBy().getId()).name(report.getReportedBy().getName()).email(report.getReportedBy().getEmail()).build()).reviewedBy(report.getReviewedBy() != null ? ReportResponse.UserInfo.builder().id(report.getReviewedBy().getId()).name(report.getReviewedBy().getName()).email(report.getReviewedBy().getEmail()).build() : null).build();
     }
 }

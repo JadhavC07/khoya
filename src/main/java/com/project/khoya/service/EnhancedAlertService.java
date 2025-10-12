@@ -1,6 +1,7 @@
 package com.project.khoya.service;
 
-import com.project.khoya.dto.*;
+import com.project.khoya.dto.EnhancedAlertListResponse;
+import com.project.khoya.dto.EnhancedAlertResponse;
 import com.project.khoya.entity.*;
 import com.project.khoya.repository.*;
 import lombok.RequiredArgsConstructor;
@@ -28,8 +29,7 @@ public class EnhancedAlertService {
     private final AlertReportRepository reportRepository;
     private final UserRepository userRepository;
 
-    public EnhancedAlertListResponse getAlertsWithSocialData(int page, int size, String location,
-                                                             AlertStatus status, String sortBy, Long currentUserId) {
+    public EnhancedAlertListResponse getAlertsWithSocialData(int page, int size, String location, AlertStatus status, String sortBy, Long currentUserId) {
 
         Sort sort = determineSorting(sortBy);
         Pageable pageable = PageRequest.of(page, size, sort);
@@ -41,25 +41,13 @@ public class EnhancedAlertService {
         Map<Long, VoteData> voteDataMap = getVoteDataForAlerts(alertIds, currentUserId);
         Map<Long, Long> commentCountMap = getCommentCountsForAlerts(alertIds);
 
-        List<EnhancedAlertResponse> alertResponses = alertPage.getContent().stream()
-                .map(alert -> mapToEnhancedAlertResponse(alert, currentUserId, voteDataMap, commentCountMap))
-                .collect(Collectors.toList());
+        List<EnhancedAlertResponse> alertResponses = alertPage.getContent().stream().map(alert -> mapToEnhancedAlertResponse(alert, currentUserId, voteDataMap, commentCountMap)).collect(Collectors.toList());
 
-        return EnhancedAlertListResponse.builder()
-                .alerts(alertResponses)
-                .page(alertPage.getNumber())
-                .size(alertPage.getSize())
-                .totalElements(alertPage.getTotalElements())
-                .totalPages(alertPage.getTotalPages())
-                .isFirst(alertPage.isFirst())
-                .isLast(alertPage.isLast())
-                .sortBy(sortBy)
-                .build();
+        return EnhancedAlertListResponse.builder().alerts(alertResponses).page(alertPage.getNumber()).size(alertPage.getSize()).totalElements(alertPage.getTotalElements()).totalPages(alertPage.getTotalPages()).isFirst(alertPage.isFirst()).isLast(alertPage.isLast()).sortBy(sortBy).build();
     }
 
     public EnhancedAlertResponse getAlertWithSocialData(Long alertId, Long currentUserId) {
-        MissingAlert alert = alertRepository.findById(alertId)
-                .orElseThrow(() -> new RuntimeException("Alert not found"));
+        MissingAlert alert = alertRepository.findById(alertId).orElseThrow(() -> new RuntimeException("Alert not found"));
 
         // Get individual vote data
         VoteData voteData = getVoteDataForAlert(alertId, currentUserId);
@@ -71,54 +59,37 @@ public class EnhancedAlertService {
     public List<EnhancedAlertResponse> getTrendingAlerts(int limit, Long currentUserId) {
         // Simple trending algorithm based on recent engagement
         LocalDateTime since = LocalDateTime.now().minusDays(7);
-        List<MissingAlert> alerts = alertRepository.findRecentAlerts(since)
-                .stream()
-                .limit(limit)
-                .collect(Collectors.toList());
+        List<MissingAlert> alerts = alertRepository.findRecentAlerts(since).stream().limit(limit).collect(Collectors.toList());
 
-        return alerts.stream()
-                .map(alert -> {
-                    VoteData voteData = getVoteDataForAlert(alert.getId(), currentUserId);
-                    long commentCount = commentRepository.countByAlertIdAndStatus(alert.getId(), CommentStatus.ACTIVE);
-                    EnhancedAlertResponse response = mapToEnhancedAlertResponse(alert, currentUserId, voteData, commentCount);
-                    response.setTrending(true);
-                    return response;
-                })
-                .collect(Collectors.toList());
+        return alerts.stream().map(alert -> {
+            VoteData voteData = getVoteDataForAlert(alert.getId(), currentUserId);
+            long commentCount = commentRepository.countByAlertIdAndStatus(alert.getId(), CommentStatus.ACTIVE);
+            EnhancedAlertResponse response = mapToEnhancedAlertResponse(alert, currentUserId, voteData, commentCount);
+            response.setTrending(true);
+            return response;
+        }).collect(Collectors.toList());
     }
 
     public List<EnhancedAlertResponse> getTopRatedAlerts(int limit, Long currentUserId) {
         // Get alerts with highest scores
-        List<MissingAlert> alerts = alertRepository.findAll()
-                .stream()
-                .sorted((a1, a2) -> Integer.compare(a2.getScore(), a1.getScore()))
-                .limit(limit)
-                .collect(Collectors.toList());
+        List<MissingAlert> alerts = alertRepository.findAll().stream().sorted((a1, a2) -> Integer.compare(a2.getScore(), a1.getScore())).limit(limit).collect(Collectors.toList());
 
-        return alerts.stream()
-                .map(alert -> {
-                    VoteData voteData = getVoteDataForAlert(alert.getId(), currentUserId);
-                    long commentCount = commentRepository.countByAlertIdAndStatus(alert.getId(), CommentStatus.ACTIVE);
-                    return mapToEnhancedAlertResponse(alert, currentUserId, voteData, commentCount);
-                })
-                .collect(Collectors.toList());
+        return alerts.stream().map(alert -> {
+            VoteData voteData = getVoteDataForAlert(alert.getId(), currentUserId);
+            long commentCount = commentRepository.countByAlertIdAndStatus(alert.getId(), CommentStatus.ACTIVE);
+            return mapToEnhancedAlertResponse(alert, currentUserId, voteData, commentCount);
+        }).collect(Collectors.toList());
     }
 
     public List<EnhancedAlertResponse> getMostCommentedAlerts(int limit, Long currentUserId) {
         // Get alerts with most comments
-        List<MissingAlert> alerts = alertRepository.findAll()
-                .stream()
-                .sorted((a1, a2) -> Integer.compare(a2.getCommentCount(), a1.getCommentCount()))
-                .limit(limit)
-                .collect(Collectors.toList());
+        List<MissingAlert> alerts = alertRepository.findAll().stream().sorted((a1, a2) -> Integer.compare(a2.getCommentCount(), a1.getCommentCount())).limit(limit).collect(Collectors.toList());
 
-        return alerts.stream()
-                .map(alert -> {
-                    VoteData voteData = getVoteDataForAlert(alert.getId(), currentUserId);
-                    long commentCount = alert.getCommentCount();
-                    return mapToEnhancedAlertResponse(alert, currentUserId, voteData, commentCount);
-                })
-                .collect(Collectors.toList());
+        return alerts.stream().map(alert -> {
+            VoteData voteData = getVoteDataForAlert(alert.getId(), currentUserId);
+            long commentCount = alert.getCommentCount();
+            return mapToEnhancedAlertResponse(alert, currentUserId, voteData, commentCount);
+        }).collect(Collectors.toList());
     }
 
     private Sort determineSorting(String sortBy) {
@@ -134,11 +105,9 @@ public class EnhancedAlertService {
     private Page<MissingAlert> getFilteredAlerts(String location, AlertStatus status, Pageable pageable) {
         if (location != null && !location.trim().isEmpty()) {
             if (status != null) {
-                return alertRepository.findByLocationContainingIgnoreCaseAndStatus(
-                        location.trim(), status, pageable);
+                return alertRepository.findByLocationContainingIgnoreCaseAndStatus(location.trim(), status, pageable);
             } else {
-                return alertRepository.findByLocationContainingIgnoreCase(
-                        location.trim(), pageable);
+                return alertRepository.findByLocationContainingIgnoreCase(location.trim(), pageable);
             }
         } else {
             if (status != null) {
@@ -150,11 +119,7 @@ public class EnhancedAlertService {
     }
 
     private Map<Long, VoteData> getVoteDataForAlerts(List<Long> alertIds, Long currentUserId) {
-        return alertIds.stream()
-                .collect(Collectors.toMap(
-                        Function.identity(),
-                        alertId -> getVoteDataForAlert(alertId, currentUserId)
-                ));
+        return alertIds.stream().collect(Collectors.toMap(Function.identity(), alertId -> getVoteDataForAlert(alertId, currentUserId)));
     }
 
     private VoteData getVoteDataForAlert(Long alertId, Long currentUserId) {
@@ -163,38 +128,25 @@ public class EnhancedAlertService {
 
         VoteType userVote = null;
         if (currentUserId != null) {
-            userVote = voteRepository.findByUserIdAndAlertId(currentUserId, alertId)
-                    .map(Vote::getType)
-                    .orElse(null);
+            userVote = voteRepository.findByUserIdAndAlertId(currentUserId, alertId).map(Vote::getType).orElse(null);
         }
 
-        return VoteData.builder()
-                .upvotes((int) upvotes)
-                .downvotes((int) downvotes)
-                .score((int) (upvotes - downvotes))
-                .userVote(userVote)
-                .build();
+        return VoteData.builder().upvotes((int) upvotes).downvotes((int) downvotes).score((int) (upvotes - downvotes)).userVote(userVote).build();
     }
 
     private Map<Long, Long> getCommentCountsForAlerts(List<Long> alertIds) {
-        return alertIds.stream()
-                .collect(Collectors.toMap(
-                        Function.identity(),
-                        alertId -> commentRepository.countByAlertIdAndStatus(alertId, CommentStatus.ACTIVE)
-                ));
+        return alertIds.stream().collect(Collectors.toMap(Function.identity(), alertId -> commentRepository.countByAlertIdAndStatus(alertId, CommentStatus.ACTIVE)));
     }
 
-    private EnhancedAlertResponse mapToEnhancedAlertResponse(MissingAlert alert, Long currentUserId,
-                                                             Map<Long, VoteData> voteDataMap, Map<Long, Long> commentCountMap) {
+    private EnhancedAlertResponse mapToEnhancedAlertResponse(MissingAlert alert, Long currentUserId, Map<Long, VoteData> voteDataMap, Map<Long, Long> commentCountMap) {
         VoteData voteData = voteDataMap.get(alert.getId());
         Long commentCount = commentCountMap.get(alert.getId());
         return mapToEnhancedAlertResponse(alert, currentUserId, voteData, commentCount != null ? commentCount : 0L);
     }
 
-    private EnhancedAlertResponse mapToEnhancedAlertResponse(MissingAlert alert, Long currentUserId,
-                                                             VoteData voteData, long commentCount) {
+    private EnhancedAlertResponse mapToEnhancedAlertResponse(MissingAlert alert, Long currentUserId, VoteData voteData, long commentCount) {
         // Check permissions
-        boolean canEdit = currentUserId != null && alert.getPostedBy().getId().equals(currentUserId);
+        boolean canEdit = alert.getPostedBy().getId().equals(currentUserId);
         boolean canDelete = canEdit; // For now, same permissions
         boolean canReport = currentUserId != null && !alert.getPostedBy().getId().equals(currentUserId);
 
@@ -205,36 +157,8 @@ public class EnhancedAlertService {
         User author = alert.getPostedBy();
         long userAlertCount = alertRepository.countByPostedById(author.getId());
 
-        return EnhancedAlertResponse.builder()
-                .id(alert.getId())
-                .title(alert.getTitle())
-                .description(alert.getDescription())
-                .location(alert.getLocation())
-                .imageUrl(alert.getImageUrl())
-                .status(alert.getStatus())
-                .reportCount(alert.getReportCount())
-                .createdAt(alert.getCreatedAt())
-                .updatedAt(alert.getUpdatedAt())
-                .foundAt(alert.getFoundAt())
-                .postedBy(EnhancedAlertResponse.UserInfo.builder()
-                        .id(author.getId())
-                        .name(author.getName())
-                        .email(author.getEmail())
-                        .reputation(calculateUserReputation(author.getId()))
-                        .alertCount((int) userAlertCount)
-                        .build())
-                .upvotes(voteData.getUpvotes())
-                .downvotes(voteData.getDownvotes())
-                .score(voteData.getScore())
-                .commentCount((int) commentCount)
-                .userVote(voteData.getUserVote())
-                .canEdit(canEdit)
-                .canDelete(canDelete)
-                .canReport(canReport)
-                .engagementScore(engagementScore)
-                .trending(false) // Will be set by specific methods
-                .visibility(determineVisibility(alert))
-                .build();
+        return EnhancedAlertResponse.builder().id(alert.getId()).title(alert.getTitle()).description(alert.getDescription()).location(alert.getLocation()).imageUrl(alert.getImageUrl()).status(alert.getStatus()).reportCount(alert.getReportCount()).createdAt(alert.getCreatedAt()).updatedAt(alert.getUpdatedAt()).foundAt(alert.getFoundAt()).postedBy(EnhancedAlertResponse.UserInfo.builder().id(author.getId()).name(author.getName()).email(author.getEmail()).reputation(calculateUserReputation(author.getId())).alertCount((int) userAlertCount).build()).upvotes(voteData.getUpvotes()).downvotes(voteData.getDownvotes()).score(voteData.getScore()).commentCount((int) commentCount).userVote(voteData.getUserVote()).canEdit(canEdit).canDelete(canDelete).canReport(canReport).engagementScore(engagementScore).trending(false) // Will be set by specific methods
+                .visibility(determineVisibility(alert)).build();
     }
 
     private double calculateEngagementScore(int score, int commentCount, LocalDateTime createdAt) {
@@ -248,9 +172,7 @@ public class EnhancedAlertService {
     private Integer calculateUserReputation(Long userId) {
         // Simple reputation calculation
         List<MissingAlert> userAlerts = alertRepository.findByPostedByIdOrderByCreatedAtDesc(userId);
-        return userAlerts.stream()
-                .mapToInt(alert -> alert.getUpvotes() - alert.getDownvotes())
-                .sum();
+        return userAlerts.stream().mapToInt(alert -> alert.getUpvotes() - alert.getDownvotes()).sum();
     }
 
     private EnhancedAlertResponse.AlertVisibility determineVisibility(MissingAlert alert) {

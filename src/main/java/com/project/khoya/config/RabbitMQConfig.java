@@ -47,18 +47,12 @@ public class RabbitMQConfig {
 
     @Bean
     public Binding socialMediaBinding() {
-        return BindingBuilder
-                .bind(socialMediaQueue())
-                .to(exchange())
-                .with(socialMediaRoutingKey);
+        return BindingBuilder.bind(socialMediaQueue()).to(exchange()).with(socialMediaRoutingKey);
     }
 
     @Bean
     public Binding notificationBinding() {
-        return BindingBuilder
-                .bind(notificationQueue())
-                .to(exchange())
-                .with(notificationRoutingKey);
+        return BindingBuilder.bind(notificationQueue()).to(exchange()).with(notificationRoutingKey);
     }
 
     @Bean

@@ -21,10 +21,7 @@ public class CacheService {
     public List<CommentResponse> getCachedComments(Long alertId) {
         List<Comment> rootComments = commentRepository.findByAlertIdAndParentIsNull(alertId);
 
-        return rootComments.stream()
-                .filter(comment -> comment.getStatus() == CommentStatus.ACTIVE)
-                .map(this::mapToDto)
-                .toList();
+        return rootComments.stream().filter(comment -> comment.getStatus() == CommentStatus.ACTIVE).map(this::mapToDto).toList();
     }
 
 
@@ -41,11 +38,7 @@ public class CacheService {
 
 
         if (comment.getAuthor() != null) {
-            CommentResponse.UserInfo authorInfo = new CommentResponse.UserInfo(
-                    comment.getAuthor().getId(),
-                    comment.getAuthor().getName(),
-                    comment.getAuthor().getEmail()
-            );
+            CommentResponse.UserInfo authorInfo = new CommentResponse.UserInfo(comment.getAuthor().getId(), comment.getAuthor().getName(), comment.getAuthor().getEmail());
             dto.setAuthor(authorInfo);
         }
 
@@ -56,10 +49,7 @@ public class CacheService {
 
 
         if (comment.getReplies() != null && !comment.getReplies().isEmpty()) {
-            List<CommentResponse> replyDtos = comment.getReplies().stream()
-                    .filter(reply -> reply.getStatus() == CommentStatus.ACTIVE)
-                    .map(this::mapToDto)
-                    .toList();
+            List<CommentResponse> replyDtos = comment.getReplies().stream().filter(reply -> reply.getStatus() == CommentStatus.ACTIVE).map(this::mapToDto).toList();
             dto.setReplies(replyDtos);
         }
 

@@ -22,8 +22,7 @@ public class FcmTokenService {
     private final UserRepository userRepository;
 
     public void saveOrUpdateToken(Long userId, FcmTokenRequest request) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
 
         Optional<FcmToken> existingToken = fcmTokenRepository.findByTokenAndIsActiveTrue(request.getToken());
 
@@ -34,7 +33,6 @@ public class FcmTokenService {
             token.setDeviceId(request.getDeviceId());
             token.setDeviceType(request.getDeviceType());
             fcmTokenRepository.save(token);
-            log.info("Updated FCM token for user: {}", userId);
         } else {
             // Create new token
             FcmToken newToken = new FcmToken();
@@ -44,12 +42,10 @@ public class FcmTokenService {
             newToken.setDeviceType(request.getDeviceType());
             newToken.setIsActive(true);
             fcmTokenRepository.save(newToken);
-            log.info("Saved new FCM token for user: {}", userId);
         }
     }
 
     public void removeToken(Long userId, String token) {
         fcmTokenRepository.deleteByUserIdAndToken(userId, token);
-        log.info("Removed FCM token for user: {}", userId);
     }
 }

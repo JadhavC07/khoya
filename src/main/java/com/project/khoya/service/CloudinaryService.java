@@ -15,15 +15,14 @@ import java.util.UUID;
 @Slf4j
 public class CloudinaryService {
 
-    private final Cloudinary cloudinary;
     private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
     private static final String[] ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp"};
+    private final Cloudinary cloudinary;
 
     public CloudinaryService() {
         Dotenv dotenv = Dotenv.load();
         this.cloudinary = new Cloudinary(dotenv.get("CLOUDINARY_URL"));
         cloudinary.config.secure = true;
-        log.info("Cloudinary configured for cloud: {}", cloudinary.config.cloudName);
     }
 
     public String uploadImage(MultipartFile file) throws IOException {
@@ -31,16 +30,10 @@ public class CloudinaryService {
 
         try {
             // Generate unique public ID for the image
-            String publicId = "khoya/alerts/" + UUID.randomUUID().toString();
+            String publicId = "khoya/alerts/" + UUID.randomUUID();
 
             // Upload parameters
-            Map uploadParams = ObjectUtils.asMap(
-                    "public_id", publicId,
-                    "folder", "khoya/alerts",
-                    "resource_type", "image",
-                    "overwrite", false,
-                    "quality", "auto:good",
-                    "fetch_format", "auto"
+            Map uploadParams = ObjectUtils.asMap("public_id", publicId, "folder", "khoya/alerts", "resource_type", "image", "overwrite", false, "quality", "auto:good", "fetch_format", "auto"
 
             );
 
@@ -48,12 +41,10 @@ public class CloudinaryService {
             Map uploadResult = cloudinary.uploader().upload(file.getBytes(), uploadParams);
 
             String secureUrl = (String) uploadResult.get("secure_url");
-            log.info("Image uploaded successfully to Cloudinary: {}", secureUrl);
 
             return secureUrl;
 
         } catch (IOException e) {
-            log.error("Failed to upload image to Cloudinary", e);
             throw new IOException("Failed to upload image to Cloudinary: " + e.getMessage());
         }
     }
@@ -67,7 +58,6 @@ public class CloudinaryService {
             // Extract public_id from Cloudinary URL
             String publicId = extractPublicId(imageUrl);
             if (publicId == null) {
-                log.warn("Could not extract public ID from URL: {}", imageUrl);
                 return false;
             }
 

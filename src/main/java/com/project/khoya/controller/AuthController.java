@@ -21,7 +21,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -33,85 +36,34 @@ public class AuthController {
     private final JwtUtil jwtUtil;
 
     @PostMapping("/register")
-    @Operation(
-            summary = "Register a new user",
-            description = "Create a new user account with email and password. Returns both access and refresh tokens."
-    )
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "201",
-                    description = "User registered successfully",
-                    content = @Content(schema = @Schema(implementation = AuthResponse.class))
-            ),
-            @ApiResponse(
-                    responseCode = "400",
-                    description = "Invalid input or user already exists"
-            )
-    })
-    public ResponseEntity<AuthResponse> register(
-            @Valid @RequestBody RegisterRequest request,
-            HttpServletRequest httpRequest) {
+    @Operation(summary = "Register a new user", description = "Create a new user account with email and password. Returns both access and refresh tokens.")
+    @ApiResponses(value = {@ApiResponse(responseCode = "201", description = "User registered successfully", content = @Content(schema = @Schema(implementation = AuthResponse.class))), @ApiResponse(responseCode = "400", description = "Invalid input or user already exists")})
+    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request, HttpServletRequest httpRequest) {
         AuthResponse response = authService.register(request, httpRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PostMapping("/login")
-    @Operation(
-            summary = "User login",
-            description = "Authenticate user with email and password. Returns both access token (15 min) and refresh token (30 days)."
-    )
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "Login successful",
-                    content = @Content(schema = @Schema(implementation = AuthResponse.class))
-            ),
-            @ApiResponse(
-                    responseCode = "401",
-                    description = "Invalid credentials"
-            )
-    })
-    public ResponseEntity<AuthResponse> login(
-            @Valid @RequestBody LoginRequest request,
-            HttpServletRequest httpRequest) {
+    @Operation(summary = "User login", description = "Authenticate user with email and password. Returns both access token (15 min) and refresh token (30 days).")
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "Login successful", content = @Content(schema = @Schema(implementation = AuthResponse.class))), @ApiResponse(responseCode = "401", description = "Invalid credentials")})
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
         AuthResponse response = authService.login(request, httpRequest);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/refresh")
-    @Operation(
-            summary = "Refresh access token",
-            description = "Get a new access token using refresh token. Use this when access token expires."
-    )
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "Token refreshed successfully",
-                    content = @Content(schema = @Schema(implementation = AuthResponse.class))
-            ),
-            @ApiResponse(
-                    responseCode = "403",
-                    description = "Invalid or expired refresh token"
-            )
-    })
+    @Operation(summary = "Refresh access token", description = "Get a new access token using refresh token. Use this when access token expires.")
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "Token refreshed successfully", content = @Content(schema = @Schema(implementation = AuthResponse.class))), @ApiResponse(responseCode = "403", description = "Invalid or expired refresh token")})
     public ResponseEntity<AuthResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
         AuthResponse response = authService.refreshToken(request);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/logout")
-    @Operation(
-            summary = "User logout",
-            description = "Logout current user. Blacklists the access token and revokes the refresh token."
-    )
-    @ApiResponse(
-            responseCode = "200",
-            description = "Logout successful"
-    )
+    @Operation(summary = "User logout", description = "Logout current user. Blacklists the access token and revokes the refresh token.")
+    @ApiResponse(responseCode = "200", description = "Logout successful")
     @SecurityRequirement(name = "Bearer Authentication")
-    public ResponseEntity<AuthResponse> logout(
-            @RequestBody(required = false) LogoutRequest request,
-            HttpServletRequest httpRequest) {
+    public ResponseEntity<AuthResponse> logout(@RequestBody(required = false) LogoutRequest request, HttpServletRequest httpRequest) {
 
         // Extract access token from header
         String accessToken = parseJwt(httpRequest);
@@ -121,27 +73,14 @@ public class AuthController {
 
         authService.logout(accessToken, refreshToken);
 
-        return ResponseEntity.ok(
-                AuthResponse.builder()
-                        .status("success")
-                        .message("Logout successful")
-                        .build()
-        );
+        return ResponseEntity.ok(AuthResponse.builder().status("success").message("Logout successful").build());
     }
 
     @PostMapping("/logout-all")
-    @Operation(
-            summary = "Logout from all devices",
-            description = "Logout user from all devices. Revokes all refresh tokens and blacklists current access token."
-    )
-    @ApiResponse(
-            responseCode = "200",
-            description = "Logged out from all devices successfully"
-    )
+    @Operation(summary = "Logout from all devices", description = "Logout user from all devices. Revokes all refresh tokens and blacklists current access token.")
+    @ApiResponse(responseCode = "200", description = "Logged out from all devices successfully")
     @SecurityRequirement(name = "Bearer Authentication")
-    public ResponseEntity<AuthResponse> logoutAllDevices(
-            Authentication authentication,
-            HttpServletRequest httpRequest) {
+    public ResponseEntity<AuthResponse> logoutAllDevices(Authentication authentication, HttpServletRequest httpRequest) {
 
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
         Long userId = userDetails.getUser().getId();
@@ -150,12 +89,7 @@ public class AuthController {
 
         authService.logoutAllDevices(userId, accessToken);
 
-        return ResponseEntity.ok(
-                AuthResponse.builder()
-                        .status("success")
-                        .message("Logged out from all devices successfully")
-                        .build()
-        );
+        return ResponseEntity.ok(AuthResponse.builder().status("success").message("Logged out from all devices successfully").build());
     }
 
     private String parseJwt(HttpServletRequest request) {

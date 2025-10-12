@@ -23,12 +23,7 @@ public class FirebaseMessagingService {
     public void sendPushNotificationToUser(Long userId, String title, String body, Map<String, String> data) {
         List<FcmToken> tokens = fcmTokenRepository.findByUserIdAndIsActiveTrue(userId);
         for (FcmToken token : tokens) {
-            sendPushNotification(PushNotificationRequest.builder()
-                    .token(token.getToken())
-                    .title(title)
-                    .body(body)
-                    .data(data)
-                    .build());
+            sendPushNotification(PushNotificationRequest.builder().token(token.getToken()).title(title).body(body).data(data).build());
         }
     }
 
@@ -49,22 +44,7 @@ public class FirebaseMessagingService {
 
             return;
         }
-        MulticastMessage message = MulticastMessage.builder()
-                .setNotification(Notification.builder()
-                        .setTitle(title)
-                        .setBody(body)
-                        .build())
-                .putAllData(flattenData(data))
-                .addAllTokens(tokenStrings)
-                .setAndroidConfig(AndroidConfig.builder()
-                        .setPriority(AndroidConfig.Priority.HIGH)
-                        .build())
-                .setApnsConfig(ApnsConfig.builder()
-                        .setAps(Aps.builder()
-                                .setContentAvailable(true)
-                                .build())
-                        .build())
-                .build();
+        MulticastMessage message = MulticastMessage.builder().setNotification(Notification.builder().setTitle(title).setBody(body).build()).putAllData(flattenData(data)).addAllTokens(tokenStrings).setAndroidConfig(AndroidConfig.builder().setPriority(AndroidConfig.Priority.HIGH).build()).setApnsConfig(ApnsConfig.builder().setAps(Aps.builder().setContentAvailable(true).build()).build()).build();
         try {
             BatchResponse response = FirebaseMessaging.getInstance().sendEachForMulticast(message);
 
@@ -77,22 +57,7 @@ public class FirebaseMessagingService {
     }
 
     public void sendPushNotification(PushNotificationRequest request) {
-        Message message = Message.builder()
-                .setNotification(Notification.builder()
-                        .setTitle(request.getTitle())
-                        .setBody(request.getBody())
-                        .build())
-                .putAllData(flattenData(request.getData()))
-                .setToken(request.getToken())
-                .setAndroidConfig(AndroidConfig.builder()
-                        .setPriority(AndroidConfig.Priority.HIGH)
-                        .build())
-                .setApnsConfig(ApnsConfig.builder()
-                        .setAps(Aps.builder()
-                                .setContentAvailable(true)
-                                .build())
-                        .build())
-                .build();
+        Message message = Message.builder().setNotification(Notification.builder().setTitle(request.getTitle()).setBody(request.getBody()).build()).putAllData(flattenData(request.getData())).setToken(request.getToken()).setAndroidConfig(AndroidConfig.builder().setPriority(AndroidConfig.Priority.HIGH).build()).setApnsConfig(ApnsConfig.builder().setAps(Aps.builder().setContentAvailable(true).build()).build()).build();
         try {
             String response = FirebaseMessaging.getInstance().send(message);
 
@@ -105,11 +70,7 @@ public class FirebaseMessagingService {
     }
 
     private Map<String, String> flattenData(Map<String, String> data) {
-        return data.entrySet().stream()
-                .collect(java.util.stream.Collectors.toMap(
-                        Map.Entry::getKey,
-                        e -> e.getValue() instanceof String ? (String) e.getValue() : e.getValue().toString()
-                ));
+        return data.entrySet().stream().collect(java.util.stream.Collectors.toMap(Map.Entry::getKey, e -> e.getValue() instanceof String ? e.getValue() : e.getValue()));
     }
 
     private void handleFailedTokens(BatchResponse response, List<FcmToken> tokens) {
@@ -125,17 +86,14 @@ public class FirebaseMessagingService {
     }
 
     private void deactivateInvalidToken(String token) {
-        fcmTokenRepository.findByTokenAndIsActiveTrue(token)
-                .ifPresent(t -> {
-                    t.setIsActive(false);
-                    fcmTokenRepository.save(t);
+        fcmTokenRepository.findByTokenAndIsActiveTrue(token).ifPresent(t -> {
+            t.setIsActive(false);
+            fcmTokenRepository.save(t);
 
-                });
+        });
     }
 
     private boolean isInvalidToken(FirebaseMessagingException e) {
-        return e.getErrorCode() == ErrorCode.INVALID_ARGUMENT ||
-                e.getErrorCode() == ErrorCode.UNAVAILABLE ||
-                "registration-token-not-registered".equalsIgnoreCase(e.getMessagingErrorCode().name());
+        return e.getErrorCode() == ErrorCode.INVALID_ARGUMENT || e.getErrorCode() == ErrorCode.UNAVAILABLE || "registration-token-not-registered".equalsIgnoreCase(e.getMessagingErrorCode().name());
     }
 }
