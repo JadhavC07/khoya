@@ -30,6 +30,12 @@ public class RabbitMQConfig {
     @Value("${rabbitmq.routing-key.notification}")
     private String notificationRoutingKey;
 
+    // Image Extractions  async
+    @Value("${rabbitmq.queue.feature-extraction}")
+    private String featureExtractionQueue;
+    @Value("${rabbitmq.routing-key.feature-extraction}")
+    private String featureExtractionRoutingKey;
+
     @Bean
     public Queue socialMediaQueue() {
         return new Queue(socialMediaQueue, true); // durable = true
@@ -55,6 +61,18 @@ public class RabbitMQConfig {
         return BindingBuilder.bind(notificationQueue()).to(exchange()).with(notificationRoutingKey);
     }
 
+
+    // Image Extractions  async
+    @Bean
+    public Queue featureExtractionQueue() {
+        return new Queue(featureExtractionQueue, true);
+    }
+
+    @Bean
+    public Binding featureExtractionBinding() {
+        return BindingBuilder.bind(featureExtractionQueue()).to(exchange()).with(featureExtractionRoutingKey);
+    }
+
     @Bean
     public MessageConverter jsonMessageConverter() {
         return new Jackson2JsonMessageConverter();
@@ -66,4 +84,5 @@ public class RabbitMQConfig {
         rabbitTemplate.setMessageConverter(jsonMessageConverter());
         return rabbitTemplate;
     }
+
 }

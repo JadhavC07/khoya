@@ -33,24 +33,24 @@ public class FeatureExtractionService {
     private ZooModel<Image, float[]> model;
     private static final int FEATURE_DIMENSION = 2048;
 
-    @PostConstruct
-    public void init() {
-
-        try {
-            Criteria<Image, float[]> criteria = Criteria.builder()
-                    .setTypes(Image.class, float[].class)
-                    .optApplication(Application.CV.IMAGE_CLASSIFICATION)
-                    .optArtifactId("resnet")
-                    .optEngine("PyTorch")
-                    .optTranslator(new FeatureTranslator())
-                    .optProgress(new ProgressBar())
-                    .build();
-            model = criteria.loadModel();
-
-        } catch (ModelNotFoundException | MalformedModelException | IOException e) {
-            log.error("Failed to load ResNet50 model", e);
-        }
-    }
+//    @PostConstruct
+//    public void init() {
+//
+//        try {
+//            Criteria<Image, float[]> criteria = Criteria.builder()
+//                    .setTypes(Image.class, float[].class)
+//                    .optApplication(Application.CV.IMAGE_CLASSIFICATION)
+//                    .optArtifactId("resnet")
+//                    .optEngine("PyTorch")
+//                    .optTranslator(new FeatureTranslator())
+//                    .optProgress(new ProgressBar())
+//                    .build();
+//            model = criteria.loadModel();
+//
+//        } catch (ModelNotFoundException | MalformedModelException | IOException e) {
+//            log.error("Failed to load ResNet50 model", e);
+//        }
+//    }
 
     public float[] extractFeatures(Image image) throws TranslateException {
         if (model == null) {
